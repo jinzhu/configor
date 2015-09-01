@@ -3,8 +3,11 @@ package configor_test
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/jinzhu/configor"
 )
@@ -104,5 +107,33 @@ func TestMissingRequiredValue(t *testing.T) {
 		}
 	} else {
 		t.Errorf("failed to marshal config")
+	}
+}
+
+func TestLoadConfigurationByEnvironment(t *testing.T) {
+	config := generateDefaultConfig()
+	config2 := struct {
+		APPName string
+	}{
+		APPName: "config2",
+	}
+
+	if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+		configBytes, _ := yaml.Marshal(config)
+		config2Bytes, _ := yaml.Marshal(config2)
+		ioutil.WriteFile(file.Name()+".yaml", configBytes, 0644)
+		ioutil.WriteFile(file.Name()+".production.yaml", config2Bytes, 0644)
+
+		var result Config
+		os.Setenv("CONFIGOR_ENV", "production")
+		if err := configor.Load(&result, file.Name()+".yaml"); err != nil {
+			t.Errorf("No error should happen when load configurations, but got %v", err)
+		}
+
+		var defaultConfig = generateDefaultConfig()
+		defaultConfig.APPName = "config2"
+		if !reflect.DeepEqual(result, defaultConfig) {
+			t.Errorf("result should be load configurations by environment correctly")
+		}
 	}
 }

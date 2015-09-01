@@ -16,7 +16,7 @@ import (
 )
 
 func ENV() string {
-	if env := os.Getenv("CONFIGOR_ENV"); env == "" {
+	if env := os.Getenv("CONFIGOR_ENV"); env != "" {
 		return env
 	}
 	if isTest, _ := regexp.MatchString("/_test/", os.Args[0]); isTest {
@@ -128,9 +128,9 @@ func load(config interface{}, file string) error {
 	if data, err := ioutil.ReadFile(file); err == nil {
 		switch {
 		case strings.HasSuffix(file, ".yaml"), strings.HasSuffix(file, ".yml"):
-			return json.Unmarshal(data, config)
-		case strings.HasSuffix(file, ".json"):
 			return yaml.Unmarshal(data, config)
+		case strings.HasSuffix(file, ".json"):
+			return json.Unmarshal(data, config)
 		case strings.HasSuffix(file, ".ini"):
 			return ini.MapTo(config, file)
 		default:
