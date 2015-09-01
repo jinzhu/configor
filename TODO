@@ -1,6 +1,0 @@
-0, nested struct
-1, check .example. exist
-2, check CONFIGOR_ENV exist
-3, CONFIGOR_ENV_PREFIX
-4, Read From ENV
-5, From Flag
