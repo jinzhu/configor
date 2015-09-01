@@ -18,7 +18,7 @@ type Config struct {
 	DB struct {
 		Name     string
 		User     string `default:"root"`
-		Password string `required:"true"`
+		Password string `required:"true" env:"DBPassword"`
 		Port     uint   `default:"3306"`
 	}
 
@@ -34,7 +34,7 @@ func generateDefaultConfig() Config {
 		DB: struct {
 			Name     string
 			User     string `default:"root"`
-			Password string `required:"true"`
+			Password string `required:"true" env:"DBPassword"`
 			Port     uint   `default:"3306"`
 		}{
 			Name:     "configor",
@@ -147,9 +147,11 @@ func TestOverwriteConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T) {
 			defer file.Close()
 			file.Write(bytes)
 			var result Config
-			os.Setenv("CONFIG_APPNAME", "config2")
-			os.Setenv("CONFIG_DB_NAME", "db_name")
+			os.Setenv("CONFIGOR_APPNAME", "config2")
+			os.Setenv("CONFIGOR_DB_NAME", "db_name")
 			configor.Load(&result, file.Name())
+			os.Setenv("CONFIGOR_APPNAME", "")
+			os.Setenv("CONFIGOR_DB_NAME", "")
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
@@ -173,10 +175,59 @@ func TestOverwriteConfigurationWithEnvironment(t *testing.T) {
 			os.Setenv("APP_APPNAME", "config2")
 			os.Setenv("APP_DB_NAME", "db_name")
 			configor.Load(&result, file.Name())
+			os.Setenv("CONFIGOR_ENV_PREFIX", "")
+			os.Setenv("APP_APPNAME", "")
+			os.Setenv("APP_DB_NAME", "")
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
 			defaultConfig.DB.Name = "db_name"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
+		}
+	}
+}
+
+func TestResetPrefixToBlank(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			file.Write(bytes)
+			var result Config
+			os.Setenv("CONFIGOR_ENV_PREFIX", "-")
+			os.Setenv("APPNAME", "config2")
+			os.Setenv("DB_NAME", "db_name")
+			configor.Load(&result, file.Name())
+			os.Setenv("CONFIGOR_ENV_PREFIX", "")
+			os.Setenv("APPNAME", "")
+			os.Setenv("DB_NAME", "")
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.APPName = "config2"
+			defaultConfig.DB.Name = "db_name"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
+		}
+	}
+}
+
+func TestReadFromEnvironmentWithSpecifiedEnvName(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			file.Write(bytes)
+			var result Config
+			os.Setenv("DBPassword", "db_password")
+			configor.Load(&result, file.Name())
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.DB.Password = "db_password"
 			if !reflect.DeepEqual(result, defaultConfig) {
 				t.Errorf("result should equal to original configuration")
 			}

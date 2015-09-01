@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// ENV will return environment
 func ENV() string {
 	if env := os.Getenv("CONFIGOR_ENV"); env != "" {
 		return env
@@ -74,9 +75,10 @@ func getPrefix(config interface{}) string {
 	if prefix := os.Getenv("CONFIGOR_ENV_PREFIX"); prefix != "" {
 		return prefix
 	}
-	return reflect.Indirect(reflect.ValueOf(config)).Type().Name()
+	return "configor"
 }
 
+// Load will unmarshal configurations to struct from files that you provide
 func Load(config interface{}, files ...string) error {
 	for _, file := range getConfigurations(files...) {
 		if err := load(config, file); err != nil {
@@ -84,7 +86,11 @@ func Load(config interface{}, files ...string) error {
 		}
 	}
 
-	return processTags(config, getPrefix(config))
+	if prefix := getPrefix(config); prefix == "-" {
+		return processTags(config)
+	} else {
+		return processTags(config, prefix)
+	}
 }
 
 func processTags(config interface{}, prefix ...string) error {
@@ -98,18 +104,28 @@ func processTags(config interface{}, prefix ...string) error {
 		fieldStruct := configType.Field(i)
 		field := configValue.Field(i)
 
-		if value := os.Getenv(strings.ToUpper(strings.Join(append(prefix, fieldStruct.Name), "_"))); value != "" {
-			if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
-				return err
+		// read configuration from shell env
+		var envName = fieldStruct.Tag.Get("env")
+		if envName == "" {
+			envName = strings.ToUpper(strings.Join(append(prefix, fieldStruct.Name), "_"))
+		}
+
+		if envName != "" {
+			if value := os.Getenv(envName); value != "" {
+				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
+					return err
+				}
 			}
 		}
 
 		if isBlank := reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()); isBlank {
+			// set default configuration if is blank
 			if value := fieldStruct.Tag.Get("default"); value != "" {
 				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
 					return err
 				}
 			} else if fieldStruct.Tag.Get("required") == "true" {
+				// set configuration has value if it is required
 				return errors.New(fieldStruct.Name + " is required, but blank")
 			}
 		}
