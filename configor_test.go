@@ -60,7 +60,7 @@ func TestLoadNormalConfig(t *testing.T) {
 	if bytes, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
-			file.WriteString(string(bytes))
+			file.Write(bytes)
 			var result Config
 			configor.Load(&result, file.Name())
 			if !reflect.DeepEqual(result, config) {
@@ -80,7 +80,7 @@ func TestDefaultValue(t *testing.T) {
 	if bytes, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
-			file.WriteString(string(bytes))
+			file.Write(bytes)
 			var result Config
 			configor.Load(&result, file.Name())
 			if !reflect.DeepEqual(result, generateDefaultConfig()) {
@@ -99,7 +99,7 @@ func TestMissingRequiredValue(t *testing.T) {
 	if bytes, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
-			file.WriteString(string(bytes))
+			file.Write(bytes)
 			var result Config
 			if err := configor.Load(&result, file.Name()); err == nil {
 				t.Errorf("Should got error when load configuration missing db password")
@@ -119,6 +119,7 @@ func TestLoadConfigurationByEnvironment(t *testing.T) {
 	}
 
 	if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+		defer file.Close()
 		configBytes, _ := yaml.Marshal(config)
 		config2Bytes, _ := yaml.Marshal(config2)
 		ioutil.WriteFile(file.Name()+".yaml", configBytes, 0644)
@@ -134,6 +135,51 @@ func TestLoadConfigurationByEnvironment(t *testing.T) {
 		defaultConfig.APPName = "config2"
 		if !reflect.DeepEqual(result, defaultConfig) {
 			t.Errorf("result should be load configurations by environment correctly")
+		}
+	}
+}
+
+func TestOverwriteConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			file.Write(bytes)
+			var result Config
+			os.Setenv("CONFIG_APPNAME", "config2")
+			os.Setenv("CONFIG_DB_NAME", "db_name")
+			configor.Load(&result, file.Name())
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.APPName = "config2"
+			defaultConfig.DB.Name = "db_name"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
+		}
+	}
+}
+
+func TestOverwriteConfigurationWithEnvironment(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			file.Write(bytes)
+			var result Config
+			os.Setenv("CONFIGOR_ENV_PREFIX", "app")
+			os.Setenv("APP_APPNAME", "config2")
+			os.Setenv("APP_DB_NAME", "db_name")
+			configor.Load(&result, file.Name())
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.APPName = "config2"
+			defaultConfig.DB.Name = "db_name"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
 		}
 	}
 }

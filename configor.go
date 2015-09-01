@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strings"
 
-	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
 )
 
@@ -71,6 +70,13 @@ func getConfigurations(files ...string) []string {
 	return results
 }
 
+func getPrefix(config interface{}) string {
+	if prefix := os.Getenv("CONFIGOR_ENV_PREFIX"); prefix != "" {
+		return prefix
+	}
+	return reflect.Indirect(reflect.ValueOf(config)).Type().Name()
+}
+
 func Load(config interface{}, files ...string) error {
 	for _, file := range getConfigurations(files...) {
 		if err := load(config, file); err != nil {
@@ -78,10 +84,10 @@ func Load(config interface{}, files ...string) error {
 		}
 	}
 
-	return processTags(config)
+	return processTags(config, getPrefix(config))
 }
 
-func processTags(config interface{}) error {
+func processTags(config interface{}, prefix ...string) error {
 	configValue := reflect.Indirect(reflect.ValueOf(config))
 	if configValue.Kind() != reflect.Struct {
 		return errors.New("invalid config, should be struct")
@@ -91,6 +97,12 @@ func processTags(config interface{}) error {
 	for i := 0; i < configType.NumField(); i++ {
 		fieldStruct := configType.Field(i)
 		field := configValue.Field(i)
+
+		if value := os.Getenv(strings.ToUpper(strings.Join(append(prefix, fieldStruct.Name), "_"))); value != "" {
+			if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
+				return err
+			}
+		}
 
 		if isBlank := reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()); isBlank {
 			if value := fieldStruct.Tag.Get("default"); value != "" {
@@ -107,7 +119,7 @@ func processTags(config interface{}) error {
 		}
 
 		if field.Kind() == reflect.Struct {
-			if err := processTags(field.Addr().Interface()); err != nil {
+			if err := processTags(field.Addr().Interface(), append(prefix, fieldStruct.Name)...); err != nil {
 				return err
 			}
 		}
@@ -115,7 +127,7 @@ func processTags(config interface{}) error {
 		if field.Kind() == reflect.Slice {
 			var length = field.Len()
 			for i := 0; i < length; i++ {
-				if err := processTags(field.Index(i).Addr().Interface()); err != nil {
+				if err := processTags(field.Index(i).Addr().Interface(), append(prefix, fieldStruct.Name, fmt.Sprintf("%d", i))...); err != nil {
 					return err
 				}
 			}
@@ -131,14 +143,10 @@ func load(config interface{}, file string) error {
 			return yaml.Unmarshal(data, config)
 		case strings.HasSuffix(file, ".json"):
 			return json.Unmarshal(data, config)
-		case strings.HasSuffix(file, ".ini"):
-			return ini.MapTo(config, file)
 		default:
 			if json.Unmarshal(data, config) != nil {
 				if yaml.Unmarshal(data, config) != nil {
-					if ini.MapTo(config, file) != nil {
-						return errors.New("failed to load file")
-					}
+					return errors.New("failed to load file")
 				}
 			}
 			return nil
