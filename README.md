@@ -15,7 +15,7 @@ var Config = struct {
 	DB struct {
 		Name     string
 		User     string `default:"root"`
-		Password string `required:"true"`
+		Password string `required:"true" env:"DBPassword"`
 		Port     uint   `default:"3306"`
 	}
 
@@ -25,20 +25,23 @@ var Config = struct {
 	}
 }{}
 
-configor.Load(&Config, "config.yml")
+configor.Load(&Config, "config.yml", "config.json"...)
 ```
 
 # Advanced Usage
 
-* Environment
+* Different configuration for each environment
+
+Use `CONFIGOR_ENV` to set the environment
 
 ```go
 // config.go
-configor.Load(&Config, "config.yml")
+configor.Load(&Config, "config.json")
 
 $ CONFIGOR_ENV=production go run config.go
-// Will load both `config.yml` & `config.production.yml`
-// `config.production.yml` will overwrite `config.yml` configurations
+// Will load `config.yml`, `config.production.yml` if it is exist
+// And `config.production.yml` will overwrite `config.yml`'s configuration
+// You could use this to share same configuration across different environments
 ```
 
 * Example Configuration
@@ -48,10 +51,10 @@ $ CONFIGOR_ENV=production go run config.go
 configor.Load(&Config, "config.yml")
 
 $ go run config.go
-// Will load `config.example.yml` if `config.yml` not found and print warning message
+// Will load `config.example.yml` automatically if `config.yml` not found and print warning message
 ```
 
-* From Shell Environment
+* Read From Shell Environment
 
 ```go
 $ CONFIGOR_APPNAME="hello world" CONFIGOR_DB_NAME="hello world" go run config.go
