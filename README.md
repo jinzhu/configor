@@ -5,7 +5,10 @@ Golang Configuration tool that support YAML, JSON, Shell Environment
 # Usage
 
 ```go
+package main
+
 import (
+	"fmt"
 	"github.com/jinzhu/configor"
 )
 
@@ -25,7 +28,26 @@ var Config = struct {
 	}
 }{}
 
-configor.Load(&Config, "config.yml", "config.json"...)
+func main() {
+	configor.Load(&Config, "config.yml")
+	fmt.Printf("config: %#v", Config)
+}
+```
+
+With configuration file *config.yml*:
+
+```yaml
+APPName: test
+
+DB:
+    Name:     test
+    User:     test
+    Password: test
+    Port:     1234
+
+Contacts:
+- Name: i test
+  Email: test@test.com
 ```
 
 # Advanced Usage
