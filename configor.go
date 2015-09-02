@@ -44,8 +44,10 @@ func getConfigurationWithENV(file, env string) (string, error) {
 func getConfigurations(files ...string) []string {
 	var results []string
 	env := ENV()
-	for _, file := range files {
+	for i := len(files) - 1; i >= 0; i-- {
 		var foundFile bool
+		var file = files[i]
+
 		// check configuration
 		if fileInfo, err := os.Stat(file); err == nil && fileInfo.Mode().IsRegular() {
 			foundFile = true
@@ -62,7 +64,7 @@ func getConfigurations(files ...string) []string {
 		if !foundFile {
 			if example, err := getConfigurationWithENV(file, "example"); err == nil {
 				fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
-				results = append(results, file)
+				results = append(results, example)
 			} else {
 				fmt.Printf("Failed to find configuration %v\n", file)
 			}
