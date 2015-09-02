@@ -133,6 +133,7 @@ func TestLoadConfigurationByEnvironment(t *testing.T) {
 
 		var result Config
 		os.Setenv("CONFIGOR_ENV", "production")
+		defer os.Setenv("CONFIGOR_ENV", "")
 		if err := configor.Load(&result, file.Name()+".yaml"); err != nil {
 			t.Errorf("No error should happen when load configurations, but got %v", err)
 		}
@@ -156,9 +157,9 @@ func TestOverwriteConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T) {
 			var result Config
 			os.Setenv("CONFIGOR_APPNAME", "config2")
 			os.Setenv("CONFIGOR_DB_NAME", "db_name")
+			defer os.Setenv("CONFIGOR_APPNAME", "")
+			defer os.Setenv("CONFIGOR_DB_NAME", "")
 			configor.Load(&result, file.Name())
-			os.Setenv("CONFIGOR_APPNAME", "")
-			os.Setenv("CONFIGOR_DB_NAME", "")
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
@@ -182,10 +183,10 @@ func TestOverwriteConfigurationWithEnvironment(t *testing.T) {
 			os.Setenv("CONFIGOR_ENV_PREFIX", "app")
 			os.Setenv("APP_APPNAME", "config2")
 			os.Setenv("APP_DB_NAME", "db_name")
+			defer os.Setenv("CONFIGOR_ENV_PREFIX", "")
+			defer os.Setenv("APP_APPNAME", "")
+			defer os.Setenv("APP_DB_NAME", "")
 			configor.Load(&result, file.Name())
-			os.Setenv("CONFIGOR_ENV_PREFIX", "")
-			os.Setenv("APP_APPNAME", "")
-			os.Setenv("APP_DB_NAME", "")
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
@@ -209,10 +210,10 @@ func TestResetPrefixToBlank(t *testing.T) {
 			os.Setenv("CONFIGOR_ENV_PREFIX", "-")
 			os.Setenv("APPNAME", "config2")
 			os.Setenv("DB_NAME", "db_name")
+			defer os.Setenv("CONFIGOR_ENV_PREFIX", "")
+			defer os.Setenv("APPNAME", "")
+			defer os.Setenv("DB_NAME", "")
 			configor.Load(&result, file.Name())
-			os.Setenv("CONFIGOR_ENV_PREFIX", "")
-			os.Setenv("APPNAME", "")
-			os.Setenv("DB_NAME", "")
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
@@ -234,6 +235,7 @@ func TestReadFromEnvironmentWithSpecifiedEnvName(t *testing.T) {
 			file.Write(bytes)
 			var result Config
 			os.Setenv("DBPassword", "db_password")
+			defer os.Setenv("DBPassword", "db_password")
 			configor.Load(&result, file.Name())
 
 			var defaultConfig = generateDefaultConfig()
@@ -242,5 +244,17 @@ func TestReadFromEnvironmentWithSpecifiedEnvName(t *testing.T) {
 				t.Errorf("result should equal to original configuration")
 			}
 		}
+	}
+}
+
+func TestENV(t *testing.T) {
+	if configor.ENV() != "test" {
+		t.Errorf("Env should be test when running `go test`")
+	}
+
+	os.Setenv("CONFIGOR_ENV", "production")
+	defer os.Setenv("CONFIGOR_ENV", "")
+	if configor.ENV() != "production" {
+		t.Errorf("Env should be production when set it with CONFIGOR_ENV")
 	}
 }

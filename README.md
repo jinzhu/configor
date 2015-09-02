@@ -52,18 +52,39 @@ Contacts:
 
 # Advanced Usage
 
+* Load mutiple configurations
+
+```go
+// Earlier configurations have higher priority
+configor.Load(&Config, "application.yml", "database.json")
+```
+
 * Different configuration for each environment
 
-Use `CONFIGOR_ENV` to set the environment
+Use `CONFIGOR_ENV` to set the environment.
+
+If `CONFIGOR_ENV` not set, when running tests with `go test`, the ENV will be `test`, otherwise, it will be `development`
 
 ```go
 // config.go
 configor.Load(&Config, "config.json")
 
-$ CONFIGOR_ENV=production go run config.go
-// Will load `config.yml`, `config.production.yml` if it is exist
-// And `config.production.yml` will overwrite `config.yml`'s configuration
+$ go run config.go
+// Will load `config.json`, `config.development.json` if it is exist
+// And `config.development.json` will overwrite `config.json`'s configuration
 // You could use this to share same configuration across different environments
+
+$ CONFIGOR_ENV=production go run config.go
+// Will load `config.json`, `config.production.json` if it is exist
+// And `config.production.json` will overwrite `config.json`'s configuration
+
+$ go test
+// Will load `config.json`, `config.test.json` if it is exist
+// And `config.test.json` will overwrite `config.json`'s configuration
+
+$ CONFIGOR_ENV=production go test
+// Will load `config.json`, `config.production.json` if it is exist
+// And `config.production.json` will overwrite `config.json`'s configuration
 ```
 
 * Example Configuration

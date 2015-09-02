@@ -19,6 +19,7 @@ func ENV() string {
 	if env := os.Getenv("CONFIGOR_ENV"); env != "" {
 		return env
 	}
+	// return test when running go test
 	if isTest, _ := regexp.MatchString("/_test/", os.Args[0]); isTest {
 		return "test"
 	}
