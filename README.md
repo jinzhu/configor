@@ -106,6 +106,22 @@ $ CONFIGOR_APPNAME="hello world" CONFIGOR_DB_NAME="hello world" go run config.go
 $ CONFIGOR_ENV_PREFIX="WEB" WEB_APPNAME="hello world" WEB_DB_NAME="hello world" go run config.go
 ```
 
+* With flags
+
+```go
+func main() {
+	config := flag.String("file", "config.yml", "configuration file")
+	flag.StringVar(&Config.APPName, "name", "", "app name")
+	flag.StringVar(&Config.DB.Name, "db-name", "", "database name")
+	flag.StringVar(&Config.DB.User, "db-user", "root", "database user")
+	flag.Parse()
+
+	os.Setenv("CONFIGOR_ENV_PREFIX", "-")
+	configor.Load(&Config, *config)
+	// configor.Load(&Config) // only load configurations from shell env & flag
+}
+```
+
 # Author
 
 **jinzhu**
