@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Configor by jinzhu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Configor</h1>
+      <h2 class="project-tagline">Golang Configuration tool that support YAML, JSON, Shell Environment</h2>
+      <a href="https://github.com/jinzhu/configor" class="btn">View on GitHub</a>
+      <a href="https://github.com/jinzhu/configor/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/jinzhu/configor/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="configor" class="anchor" href="#configor" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configor</h1>
+
+<p>Golang Configuration tool that support YAML, JSON, Shell Environment</p>
+
+<h1>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">package</span> main
+
+<span class="pl-k">import</span> (
+    <span class="pl-s"><span class="pl-pds">"</span>fmt<span class="pl-pds">"</span></span>
+    <span class="pl-s"><span class="pl-pds">"</span>github.com/jinzhu/configor<span class="pl-pds">"</span></span>
+)
+
+<span class="pl-k">var</span> <span class="pl-smi">Config</span> = <span class="pl-k">struct</span> {
+    <span class="pl-v">APPName</span> <span class="pl-k">string</span> <span class="pl-s"><span class="pl-pds">`</span>default:"app name"<span class="pl-pds">`</span></span>
+
+    <span class="pl-v">DB</span> <span class="pl-k">struct</span> {
+        Name     <span class="pl-k">string</span>
+        User     <span class="pl-k">string</span> <span class="pl-s"><span class="pl-pds">`</span>default:"root"<span class="pl-pds">`</span></span>
+        Password <span class="pl-k">string</span> <span class="pl-s"><span class="pl-pds">`</span>required:"true" env:"DBPassword"<span class="pl-pds">`</span></span>
+        Port     <span class="pl-k">uint</span>   <span class="pl-s"><span class="pl-pds">`</span>default:"3306"<span class="pl-pds">`</span></span>
+    }
+
+    <span class="pl-v">Contacts</span> []<span class="pl-k">struct</span> {
+        Name  <span class="pl-k">string</span>
+        Email <span class="pl-k">string</span> <span class="pl-s"><span class="pl-pds">`</span>required:"true"<span class="pl-pds">`</span></span>
+    }
+}{}
+
+<span class="pl-k">func</span> <span class="pl-en">main</span>() {
+    configor.<span class="pl-c1">Load</span>(&amp;Config, <span class="pl-s"><span class="pl-pds">"</span>config.yml<span class="pl-pds">"</span></span>)
+    fmt.<span class="pl-c1">Printf</span>(<span class="pl-s"><span class="pl-pds">"</span>config: <span class="pl-c1">%#v</span><span class="pl-pds">"</span></span>, Config)
+}</pre></div>
+
+<p>With configuration file <em>config.yml</em>:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="pl-s"><span class="pl-ent">APPName:</span> <span class="pl-s">test</span></span>
+
+<span class="pl-s"><span class="pl-ent">DB:</span></span>
+    <span class="pl-s"><span class="pl-ent">Name:</span>     <span class="pl-s">test</span></span>
+    <span class="pl-s"><span class="pl-ent">User:</span>     <span class="pl-s">test</span></span>
+    <span class="pl-s"><span class="pl-ent">Password:</span> <span class="pl-s">test</span></span>
+    <span class="pl-c1"><span class="pl-ent">Port:</span>     1234</span>
+
+<span class="pl-s"><span class="pl-ent">Contacts:</span></span>
+<span class="pl-s">- <span class="pl-ent">Name:</span> <span class="pl-s">i test</span></span>
+  <span class="pl-s"><span class="pl-ent">Email:</span> <span class="pl-s">test@test.com</span></span></pre></div>
+
+<h1>
+<a id="advanced-usage" class="anchor" href="#advanced-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced Usage</h1>
+
+<ul>
+<li>Load mutiple configurations</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-c">// Earlier configurations have higher priority</span>
+configor.<span class="pl-c1">Load</span>(&amp;Config, <span class="pl-s"><span class="pl-pds">"</span>application.yml<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>database.json<span class="pl-pds">"</span></span>)</pre></div>
+
+<ul>
+<li>Different configuration for each environment</li>
+</ul>
+
+<p>Use <code>CONFIGOR_ENV</code> to set the environment.</p>
+
+<p>If <code>CONFIGOR_ENV</code> not set, when running tests with <code>go test</code>, the ENV will be <code>test</code>, otherwise, it will be <code>development</code></p>
+
+<div class="highlight highlight-go"><pre><span class="pl-c">// config.go</span>
+configor.<span class="pl-c1">Load</span>(&amp;Config, <span class="pl-s"><span class="pl-pds">"</span>config.json<span class="pl-pds">"</span></span>)
+
+$ <span class="pl-k">go</span> run config.<span class="pl-smi">go</span>
+<span class="pl-c">// Will load `config.json`, `config.development.json` if it is exist</span>
+<span class="pl-c">// And `config.development.json` will overwrite `config.json`'s configuration</span>
+<span class="pl-c">// You could use this to share same configuration across different environments</span>
+
+$ <span class="pl-v">CONFIGOR_ENV</span>=production <span class="pl-k">go</span> run config.<span class="pl-smi">go</span>
+<span class="pl-c">// Will load `config.json`, `config.production.json` if it is exist</span>
+<span class="pl-c">// And `config.production.json` will overwrite `config.json`'s configuration</span>
+
+$ <span class="pl-k">go</span> test
+<span class="pl-c">// Will load `config.json`, `config.test.json` if it is exist</span>
+<span class="pl-c">// And `config.test.json` will overwrite `config.json`'s configuration</span>
+
+$ <span class="pl-v">CONFIGOR_ENV</span>=production <span class="pl-k">go</span> test
+<span class="pl-c">// Will load `config.json`, `config.production.json` if it is exist</span>
+<span class="pl-c">// And `config.production.json` will overwrite `config.json`'s configuration</span></pre></div>
+
+<ul>
+<li>Example Configuration</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-c">// config.go</span>
+configor.<span class="pl-c1">Load</span>(&amp;Config, <span class="pl-s"><span class="pl-pds">"</span>config.yml<span class="pl-pds">"</span></span>)
+
+$ <span class="pl-k">go</span> run config.<span class="pl-smi">go</span>
+<span class="pl-c">// Will load `config.example.yml` automatically if `config.yml` not found and print warning message</span></pre></div>
+
+<ul>
+<li>Read From Shell Environment</li>
+</ul>
+
+<div class="highlight highlight-go"><pre>$ <span class="pl-v">CONFIGOR_APPNAME</span>=<span class="pl-s"><span class="pl-pds">"</span>hello world<span class="pl-pds">"</span></span> <span class="pl-v">CONFIGOR_DB_NAME</span>=<span class="pl-s"><span class="pl-pds">"</span>hello world<span class="pl-pds">"</span></span> <span class="pl-k">go</span> run config.<span class="pl-smi">go</span>
+<span class="pl-c">// Will use shell environment's value if found with upcase of prefix (by default is CONFIGOR) + field name as key</span>
+<span class="pl-c">// You could overwrite the prefix with environment CONFIGOR_ENV_PREFIX, for example:</span>
+$ <span class="pl-v">CONFIGOR_ENV_PREFIX</span>=<span class="pl-s"><span class="pl-pds">"</span>WEB<span class="pl-pds">"</span></span> <span class="pl-v">WEB_APPNAME</span>=<span class="pl-s"><span class="pl-pds">"</span>hello world<span class="pl-pds">"</span></span> <span class="pl-v">WEB_DB_NAME</span>=<span class="pl-s"><span class="pl-pds">"</span>hello world<span class="pl-pds">"</span></span> <span class="pl-k">go</span> run config.<span class="pl-smi">go</span></pre></div>
+
+<ul>
+<li>With flags</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">func</span> <span class="pl-en">main</span>() {
+    <span class="pl-smi">config</span> <span class="pl-k">:=</span> flag.<span class="pl-c1">String</span>(<span class="pl-s"><span class="pl-pds">"</span>file<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>config.yml<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>configuration file<span class="pl-pds">"</span></span>)
+    flag.<span class="pl-c1">StringVar</span>(&amp;Config.<span class="pl-smi">APPName</span>, <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>app name<span class="pl-pds">"</span></span>)
+    flag.<span class="pl-c1">StringVar</span>(&amp;Config.<span class="pl-smi">DB</span>.<span class="pl-smi">Name</span>, <span class="pl-s"><span class="pl-pds">"</span>db-name<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>database name<span class="pl-pds">"</span></span>)
+    flag.<span class="pl-c1">StringVar</span>(&amp;Config.<span class="pl-smi">DB</span>.<span class="pl-smi">User</span>, <span class="pl-s"><span class="pl-pds">"</span>db-user<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>root<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>database user<span class="pl-pds">"</span></span>)
+    flag.<span class="pl-c1">Parse</span>()
+
+    os.<span class="pl-c1">Setenv</span>(<span class="pl-s"><span class="pl-pds">"</span>CONFIGOR_ENV_PREFIX<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>-<span class="pl-pds">"</span></span>)
+    configor.<span class="pl-c1">Load</span>(&amp;Config, *config)
+    <span class="pl-c">// configor.Load(&amp;Config) // only load configurations from shell env &amp; flag</span>
+}</pre></div>
+
+<h1>
+<a id="author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h1>
+
+<p><strong>jinzhu</strong></p>
+
+<ul>
+<li><a href="http://github.com/jinzhu">http://github.com/jinzhu</a></li>
+<li><a href="mailto:wosmvp@gmail.com">wosmvp@gmail.com</a></li>
+<li><a href="http://twitter.com/zhangjinzhu">http://twitter.com/zhangjinzhu</a></li>
+</ul>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Released under the MIT License</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/jinzhu/configor">Configor</a> is maintained by <a href="https://github.com/jinzhu">jinzhu</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
