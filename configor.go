@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/BurntSushi/toml"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -158,21 +160,26 @@ func processTags(config interface{}, prefix ...string) error {
 }
 
 func load(config interface{}, file string) error {
-	if data, err := ioutil.ReadFile(file); err == nil {
-		switch {
-		case strings.HasSuffix(file, ".yaml"), strings.HasSuffix(file, ".yml"):
-			return yaml.Unmarshal(data, config)
-		case strings.HasSuffix(file, ".json"):
-			return json.Unmarshal(data, config)
-		default:
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case strings.HasSuffix(file, ".yaml") || strings.HasSuffix(file, ".yml"):
+		return yaml.Unmarshal(data, config)
+	case strings.HasSuffix(file, ".toml"):
+		return toml.Unmarshal(data, config)
+	case strings.HasSuffix(file, ".json"):
+		return json.Unmarshal(data, config)
+	default:
+		if toml.Unmarshal(data, config) != nil {
 			if json.Unmarshal(data, config) != nil {
 				if yaml.Unmarshal(data, config) != nil {
-					return errors.New("failed to load file")
+					return errors.New("failed to decode config")
 				}
 			}
-			return nil
 		}
-	} else {
-		return err
+		return nil
 	}
 }
