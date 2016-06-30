@@ -66,10 +66,7 @@ func getConfigurations(files ...string) []string {
 		// check example configuration
 		if !foundFile {
 			if example, err := getConfigurationWithENV(file, "example"); err == nil {
-				fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
 				results = append(results, example)
-			} else {
-				fmt.Printf("Failed to find configuration %v\n", file)
 			}
 		}
 	}
