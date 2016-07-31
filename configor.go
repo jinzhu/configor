@@ -44,7 +44,7 @@ func getConfigurationWithENV(file, env string) (string, error) {
 	return "", fmt.Errorf("failed to find file %v", file)
 }
 
-func getConfigurations(files ...string) []string {
+func getConfigurations(files ...string) ([]string, error) {
 	var results []string
 	env := ENV()
 	for i := len(files) - 1; i >= 0; i-- {
@@ -66,14 +66,14 @@ func getConfigurations(files ...string) []string {
 		// check example configuration
 		if !foundFile {
 			if example, err := getConfigurationWithENV(file, "example"); err == nil {
-				fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
+				//fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
 				results = append(results, example)
 			} else {
-				fmt.Printf("Failed to find configuration %v\n", file)
+				return nil, errors.New("Failed to find configuration " + file + "\n")
 			}
 		}
 	}
-	return results
+	return results, nil
 }
 
 func getPrefix(config interface{}) string {
@@ -107,7 +107,11 @@ func Save(config interface{}, filename string) error {
 
 // Load will unmarshal configurations to struct from files that you provide
 func Load(config interface{}, files ...string) error {
-	for _, file := range getConfigurations(files...) {
+	files, err := getConfigurations(files...)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
 		if err := load(config, file); err != nil {
 			return err
 		}
