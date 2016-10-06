@@ -14,6 +14,10 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+type Anonymous struct {
+	Description string
+}
+
 type Config struct {
 	APPName string `default:"configor"`
 
@@ -28,6 +32,8 @@ type Config struct {
 		Name  string
 		Email string `required:"true"`
 	}
+
+	Anonymous `anonymous:"true"`
 }
 
 func generateDefaultConfig() Config {
@@ -52,6 +58,9 @@ func generateDefaultConfig() Config {
 				Name:  "Jinzhu",
 				Email: "wosmvp@gmail.com",
 			},
+		},
+		Anonymous: Anonymous{
+			Description: "This is an anonymous embedded struct whose environment variables should NOT include 'ANONYMOUS'",
 		},
 	}
 	return config
@@ -275,11 +284,33 @@ func TestReadFromEnvironmentWithSpecifiedEnvName(t *testing.T) {
 			file.Write(bytes)
 			var result Config
 			os.Setenv("DBPassword", "db_password")
-			defer os.Setenv("DBPassword", "db_password")
+			defer os.Setenv("DBPassword", "")
 			configor.Load(&result, file.Name())
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.DB.Password = "db_password"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
+		}
+	}
+}
+
+func TestAnonymousStruct(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			defer os.Remove(file.Name())
+			file.Write(bytes)
+			var result Config
+			os.Setenv("CONFIGOR_DESCRIPTION", "environment description")
+			defer os.Setenv("CONFIGOR_DESCRIPTION", "")
+			configor.Load(&result, file.Name())
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.Anonymous.Description = "environment description"
 			if !reflect.DeepEqual(result, defaultConfig) {
 				t.Errorf("result should equal to original configuration")
 			}
