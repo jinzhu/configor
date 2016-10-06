@@ -98,6 +98,13 @@ func Load(config interface{}, files ...string) error {
 	}
 }
 
+func getPrefixForStruct(prefix []string, fieldStruct *reflect.StructField) []string {
+	if fieldStruct.Anonymous && fieldStruct.Tag.Get("anonymous") == "true" {
+		return prefix
+	}
+	return append(prefix, fieldStruct.Name)
+}
+
 func processTags(config interface{}, prefix ...string) error {
 	configValue := reflect.Indirect(reflect.ValueOf(config))
 	if configValue.Kind() != reflect.Struct {
@@ -140,7 +147,7 @@ func processTags(config interface{}, prefix ...string) error {
 		}
 
 		if field.Kind() == reflect.Struct {
-			if err := processTags(field.Addr().Interface(), append(prefix, fieldStruct.Name)...); err != nil {
+			if err := processTags(field.Addr().Interface(), getPrefixForStruct(prefix, &fieldStruct)...); err != nil {
 				return err
 			}
 		}
@@ -149,7 +156,7 @@ func processTags(config interface{}, prefix ...string) error {
 			var length = field.Len()
 			for i := 0; i < length; i++ {
 				if reflect.Indirect(field.Index(i)).Kind() == reflect.Struct {
-					if err := processTags(field.Index(i).Addr().Interface(), append(prefix, fieldStruct.Name, fmt.Sprintf("%d", i))...); err != nil {
+					if err := processTags(field.Index(i).Addr().Interface(), append(getPrefixForStruct(prefix, &fieldStruct), fmt.Sprintf("%d", i))...); err != nil {
 						return err
 					}
 				}
