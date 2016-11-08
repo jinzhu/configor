@@ -337,6 +337,14 @@ func TestErrorIncludesPath(t *testing.T) {
 				},
 			},
 		},
+		{
+			// Multiple fields
+			path: "B",
+			strukt: &struct {
+				A string `required:"true"`
+				B string `required:"true"`
+			}{},
+		},
 	}
 
 	for _, c := range cases {
