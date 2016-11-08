@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/hashicorp/go-multierror"
 
 	"gopkg.in/yaml.v2"
 )
@@ -104,6 +105,8 @@ func processTags(config interface{}, prefix ...string) error {
 		return errors.New("invalid config, should be struct")
 	}
 
+	var errs *multierror.Error
+
 	configType := configValue.Type()
 	for i := 0; i < configType.NumField(); i++ {
 		fieldStruct := configType.Field(i)
@@ -118,7 +121,7 @@ func processTags(config interface{}, prefix ...string) error {
 		if envName != "" {
 			if value := os.Getenv(envName); value != "" {
 				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
-					return err
+					errs = multierror.Append(errs, err)
 				}
 			}
 		}
@@ -127,11 +130,13 @@ func processTags(config interface{}, prefix ...string) error {
 			// set default configuration if is blank
 			if value := fieldStruct.Tag.Get("default"); value != "" {
 				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
-					return err
+					errs = multierror.Append(errs, err)
 				}
 			} else if fieldStruct.Tag.Get("required") == "true" {
 				// set configuration has value if it is required
-				return errors.New(fieldStruct.Name + " is required, but blank")
+				path := append(prefix, fieldStruct.Name)
+				err := errors.New(strings.Join(path, ".") + " is required, but blank")
+				errs = multierror.Append(errs, err)
 			}
 		}
 
@@ -141,7 +146,7 @@ func processTags(config interface{}, prefix ...string) error {
 
 		if field.Kind() == reflect.Struct {
 			if err := processTags(field.Addr().Interface(), append(prefix, fieldStruct.Name)...); err != nil {
-				return err
+				errs = multierror.Append(errs, err)
 			}
 		}
 
@@ -150,13 +155,13 @@ func processTags(config interface{}, prefix ...string) error {
 			for i := 0; i < length; i++ {
 				if reflect.Indirect(field.Index(i)).Kind() == reflect.Struct {
 					if err := processTags(field.Index(i).Addr().Interface(), append(prefix, fieldStruct.Name, fmt.Sprintf("%d", i))...); err != nil {
-						return err
+						errs = multierror.Append(errs, err)
 					}
 				}
 			}
 		}
 	}
-	return nil
+	return errs.ErrorOrNil()
 }
 
 func load(config interface{}, file string) error {
