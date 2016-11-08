@@ -131,7 +131,8 @@ func processTags(config interface{}, prefix ...string) error {
 				}
 			} else if fieldStruct.Tag.Get("required") == "true" {
 				// set configuration has value if it is required
-				return errors.New(fieldStruct.Name + " is required, but blank")
+				path := append(prefix, fieldStruct.Name)
+				return errors.New(strings.Join(path, ".") + " is required, but blank")
 			}
 		}
 

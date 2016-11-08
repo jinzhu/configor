@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -296,5 +297,57 @@ func TestENV(t *testing.T) {
 	defer os.Setenv("CONFIGOR_ENV", "")
 	if configor.ENV() != "production" {
 		t.Errorf("Env should be production when set it with CONFIGOR_ENV")
+	}
+}
+
+func TestErrorIncludesPath(t *testing.T) {
+	// Used in the array case
+	type arrayStruct struct {
+		B string `required:"true"`
+	}
+
+	cases := []struct {
+		path   string
+		strukt interface{}
+	}{
+		{
+			// Top-level field
+			path: "A",
+			strukt: &struct {
+				A string `required:"true"`
+			}{},
+		},
+		{
+			// Nested struct
+			path: "A.B",
+			strukt: &struct {
+				A struct {
+					B string `required:"true"`
+				}
+			}{},
+		},
+		{
+			// Slice
+			path: "A.0.B",
+			strukt: &struct {
+				A []arrayStruct
+			}{
+				A: []arrayStruct{
+					{B: ""},
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		err := configor.Load(c.strukt)
+
+		if err == nil {
+			t.Error("no error on missing required field")
+		}
+
+		if !strings.Contains(err.Error(), c.path) {
+			t.Errorf("error message doesn't contain path %s: %v", c.path, err)
+		}
 	}
 }
