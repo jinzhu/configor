@@ -106,6 +106,24 @@ $ CONFIGOR_APPNAME="hello world" CONFIGOR_DB_NAME="hello world" go run config.go
 $ CONFIGOR_ENV_PREFIX="WEB" WEB_APPNAME="hello world" WEB_DB_NAME="hello world" go run config.go
 ```
 
+* Anonymous Struct
+
+Add the `anonymous:"true"` tag to an anonymous, embedded struct to NOT include the struct name in the environment
+variable of any contained fields.  For example:
+
+```go
+type Details struct {
+	Description string
+}
+
+type Config struct {
+	Details `anonymous:"true"`
+}
+```
+
+With the `anonymous:"true"` tag specified, the environment variable for the `Description` field is `CONFIGOR_DESCRIPTION`.
+Without the `anonymous:"true"`tag specified, then environment variable would include the embedded struct name and be `CONFIGOR_DETAILS_DESCRIPTION`.
+
 * With flags
 
 ```go
