@@ -37,17 +37,17 @@ func main() {
 With configuration file *config.yml*:
 
 ```yaml
-APPName: test
+appname: test
 
-DB:
-    Name:     test
-    User:     test
-    Password: test
-    Port:     1234
+db:
+    name:     test
+    user:     test
+    password: test
+    port:     1234
 
-Contacts:
-- Name: i test
-  Email: test@test.com
+contacts:
+- name: i test
+  email: test@test.com
 ```
 
 # Advanced Usage
