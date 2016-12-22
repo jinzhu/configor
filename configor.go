@@ -113,20 +113,26 @@ func processTags(config interface{}, prefix ...string) error {
 
 	configType := configValue.Type()
 	for i := 0; i < configType.NumField(); i++ {
-		fieldStruct := configType.Field(i)
-		field := configValue.Field(i)
+		var (
+			envNames    []string
+			fieldStruct = configType.Field(i)
+			field       = configValue.Field(i)
+			envName     = fieldStruct.Tag.Get("env") // read configuration from shell env
+		)
 
-		// read configuration from shell env
-		var envName = fieldStruct.Tag.Get("env")
 		if envName == "" {
-			envName = strings.ToUpper(strings.Join(append(prefix, fieldStruct.Name), "_"))
+			envNames = append(envNames, strings.Join(append(prefix, fieldStruct.Name), "_"))
+			envNames = append(envNames, strings.ToUpper(strings.Join(append(prefix, fieldStruct.Name), "_")))
+		} else {
+			envNames = []string{envName}
 		}
 
-		if envName != "" {
-			if value := os.Getenv(envName); value != "" {
+		for _, env := range envNames {
+			if value := os.Getenv(env); value != "" {
 				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
 					return err
 				}
+				break
 			}
 		}
 

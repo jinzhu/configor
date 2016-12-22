@@ -10,8 +10,8 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/jinzhu/configor"
 	"github.com/BurntSushi/toml"
+	"github.com/jinzhu/configor"
 )
 
 type Anonymous struct {
@@ -262,6 +262,33 @@ func TestResetPrefixToBlank(t *testing.T) {
 			defer os.Setenv("CONFIGOR_ENV_PREFIX", "")
 			defer os.Setenv("APPNAME", "")
 			defer os.Setenv("DB_NAME", "")
+			configor.Load(&result, file.Name())
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.APPName = "config2"
+			defaultConfig.DB.Name = "db_name"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
+		}
+	}
+}
+
+func TestResetPrefixToBlank2(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			defer os.Remove(file.Name())
+			file.Write(bytes)
+			var result Config
+			os.Setenv("CONFIGOR_ENV_PREFIX", "-")
+			os.Setenv("APPName", "config2")
+			os.Setenv("DB_Name", "db_name")
+			defer os.Setenv("CONFIGOR_ENV_PREFIX", "")
+			defer os.Setenv("APPName", "")
+			defer os.Setenv("DB_Name", "")
 			configor.Load(&result, file.Name())
 
 			var defaultConfig = generateDefaultConfig()
