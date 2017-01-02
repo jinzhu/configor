@@ -2,7 +2,7 @@
 
 Golang Configuration tool that support YAML, JSON, Shell Environment
 
-# Usage
+## Usage
 
 ```go
 package main
@@ -140,7 +140,12 @@ func main() {
 }
 ```
 
-# Author
+## Supporting the project
+
+[![http://patreon.com/jinzhu](http://patreon_public_assets.s3.amazonaws.com/sized/becomeAPatronBanner.png)](http://patreon.com/jinzhu)
+
+
+## Author
 
 **jinzhu**
 
