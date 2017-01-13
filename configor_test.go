@@ -206,6 +206,42 @@ func TestLoadConfigurationByEnvironment(t *testing.T) {
 	}
 }
 
+func TestLoadConfigurationByEnvironmentSetByConfig(t *testing.T) {
+	config := generateDefaultConfig()
+	config2 := struct {
+		APPName string
+	}{
+		APPName: "production_config2",
+	}
+
+	if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+		defer file.Close()
+		defer os.Remove(file.Name())
+		configBytes, _ := yaml.Marshal(config)
+		config2Bytes, _ := yaml.Marshal(config2)
+		ioutil.WriteFile(file.Name()+".yaml", configBytes, 0644)
+		defer os.Remove(file.Name() + ".yaml")
+		ioutil.WriteFile(file.Name()+".production.yaml", config2Bytes, 0644)
+		defer os.Remove(file.Name() + ".production.yaml")
+
+		var result Config
+		var Configor = configor.New(&configor.Config{Environment: "production"})
+		if Configor.Load(&result, file.Name()+".yaml"); err != nil {
+			t.Errorf("No error should happen when load configurations, but got %v", err)
+		}
+
+		var defaultConfig = generateDefaultConfig()
+		defaultConfig.APPName = "production_config2"
+		if !reflect.DeepEqual(result, defaultConfig) {
+			t.Errorf("result should be load configurations by environment correctly")
+		}
+
+		if Configor.GetEnvironment() != "production" {
+			t.Errorf("configor's environment should be production")
+		}
+	}
+}
+
 func TestOverwriteConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T) {
 	config := generateDefaultConfig()
 
@@ -247,6 +283,33 @@ func TestOverwriteConfigurationWithEnvironment(t *testing.T) {
 			defer os.Setenv("APP_APPNAME", "")
 			defer os.Setenv("APP_DB_NAME", "")
 			configor.Load(&result, file.Name())
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.APPName = "config2"
+			defaultConfig.DB.Name = "db_name"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
+		}
+	}
+}
+
+func TestOverwriteConfigurationWithEnvironmentThatSetByConfig(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			defer os.Remove(file.Name())
+			file.Write(bytes)
+			os.Setenv("APP1_APPName", "config2")
+			os.Setenv("APP1_DB_Name", "db_name")
+			defer os.Setenv("APP1_APPName", "")
+			defer os.Setenv("APP1_DB_Name", "")
+
+			var result Config
+			var Configor = configor.New(&configor.Config{ENVPrefix: "APP1"})
+			Configor.Load(&result, file.Name())
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
