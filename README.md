@@ -59,32 +59,35 @@ contacts:
 configor.Load(&Config, "application.yml", "database.json")
 ```
 
-* Different configuration for each environment
+* Load configuration by environment
 
-Use `CONFIGOR_ENV` to set the environment.
-
-If `CONFIGOR_ENV` not set, when running tests with `go test`, the ENV will be `test`, otherwise, it will be `development`
+Use `CONFIGOR_ENV` to set environment, if `CONFIGOR_ENV` not set, environment will be `development` by default, and it will be `test` when running tests with `go test`
 
 ```go
 // config.go
 configor.Load(&Config, "config.json")
 
 $ go run config.go
-// Will load `config.json`, `config.development.json` if it is exist
-// And `config.development.json` will overwrite `config.json`'s configuration
+// Will load `config.json`, `config.development.json` if it exists
+// `config.development.json` will overwrite `config.json`'s configuration
 // You could use this to share same configuration across different environments
 
 $ CONFIGOR_ENV=production go run config.go
-// Will load `config.json`, `config.production.json` if it is exist
-// And `config.production.json` will overwrite `config.json`'s configuration
+// Will load `config.json`, `config.production.json` if it exists
+// `config.production.json` will overwrite `config.json`'s configuration
 
 $ go test
-// Will load `config.json`, `config.test.json` if it is exist
-// And `config.test.json` will overwrite `config.json`'s configuration
+// Will load `config.json`, `config.test.json` if it exists
+// `config.test.json` will overwrite `config.json`'s configuration
 
 $ CONFIGOR_ENV=production go test
-// Will load `config.json`, `config.production.json` if it is exist
-// And `config.production.json` will overwrite `config.json`'s configuration
+// Will load `config.json`, `config.production.json` if it exists
+// `config.production.json` will overwrite `config.json`'s configuration
+```
+
+```go
+// Set environment by config
+configor.New(&configor.Config{Environment: "production"}).Load(&Config, "config.json")
 ```
 
 * Example Configuration
@@ -97,13 +100,19 @@ $ go run config.go
 // Will load `config.example.yml` automatically if `config.yml` not found and print warning message
 ```
 
-* Read From Shell Environment
+* Load From Shell Environment
 
 ```go
 $ CONFIGOR_APPNAME="hello world" CONFIGOR_DB_NAME="hello world" go run config.go
-// Will use shell environment's value if found with upcase of prefix (by default is CONFIGOR) + field name as key
+// Load configuration from shell environment, it's name is {{prefix}}_FieldName
+```
+
+```go
 // You could overwrite the prefix with environment CONFIGOR_ENV_PREFIX, for example:
 $ CONFIGOR_ENV_PREFIX="WEB" WEB_APPNAME="hello world" WEB_DB_NAME="hello world" go run config.go
+
+// Set prefix by config
+configor.New(&configor.Config{ENVPrefix: "WEB"}).Load(&Config, "config.json")
 ```
 
 * Anonymous Struct
