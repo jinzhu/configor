@@ -73,6 +73,7 @@ func TestLoadNormalConfig(t *testing.T) {
 			defer file.Close()
 			defer os.Remove(file.Name())
 			file.Write(bytes)
+
 			var result Config
 			configor.Load(&result, file.Name())
 			if !reflect.DeepEqual(result, config) {
@@ -84,14 +85,18 @@ func TestLoadNormalConfig(t *testing.T) {
 	}
 }
 
-func TestLoadTOMLConfigWithTomlExtension(t *testing.T) {
-	config := generateDefaultConfig()
-	var buffer bytes.Buffer
+func TestLoadConfigFromTomlWithExtension(t *testing.T) {
+	var (
+		config = generateDefaultConfig()
+		buffer bytes.Buffer
+	)
+
 	if err := toml.NewEncoder(&buffer).Encode(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor.toml"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
 			file.Write(buffer.Bytes())
+
 			var result Config
 			configor.Load(&result, file.Name())
 			if !reflect.DeepEqual(result, config) {
@@ -103,14 +108,18 @@ func TestLoadTOMLConfigWithTomlExtension(t *testing.T) {
 	}
 }
 
-func TestLoadTOMLConfigWithoutExtension(t *testing.T) {
-	config := generateDefaultConfig()
-	var buffer bytes.Buffer
+func TestLoadConfigFromTomlWithoutExtension(t *testing.T) {
+	var (
+		config = generateDefaultConfig()
+		buffer bytes.Buffer
+	)
+
 	if err := toml.NewEncoder(&buffer).Encode(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
 			file.Write(buffer.Bytes())
+
 			var result Config
 			configor.Load(&result, file.Name())
 			if !reflect.DeepEqual(result, config) {
@@ -132,6 +141,7 @@ func TestDefaultValue(t *testing.T) {
 			defer file.Close()
 			defer os.Remove(file.Name())
 			file.Write(bytes)
+
 			var result Config
 			configor.Load(&result, file.Name())
 			if !reflect.DeepEqual(result, generateDefaultConfig()) {
@@ -152,6 +162,7 @@ func TestMissingRequiredValue(t *testing.T) {
 			defer file.Close()
 			defer os.Remove(file.Name())
 			file.Write(bytes)
+
 			var result Config
 			if err := configor.Load(&result, file.Name()); err == nil {
 				t.Errorf("Should got error when load configuration missing db password")
