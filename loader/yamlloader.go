@@ -1,7 +1,6 @@
 package loader
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -15,7 +14,7 @@ type Yamlloader struct{}
 // Load will read the file and unmarshal
 func (l *Yamlloader) Load(config interface{}, file string) error {
 	if !strings.HasSuffix(file, ".yml") && !strings.HasSuffix(file, ".yaml") {
-		return errors.New(fmt.Sprintf("File does not have the toml extension: %s", file))
+		return fmt.Errorf("File does not have the yaml / yml extension: %s", file)
 	}
 	return l.PlainLoad(config, file)
 }

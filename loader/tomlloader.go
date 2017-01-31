@@ -2,7 +2,6 @@ package loader
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -16,7 +15,7 @@ type Tomlloader struct{}
 // Load will read the file and unmarshal
 func (l *Tomlloader) Load(config interface{}, file string) error {
 	if !strings.HasSuffix(file, ".toml") {
-		return errors.New(fmt.Sprintf("File does not have the toml extension: %s", file))
+		return fmt.Errorf("File does not have the toml extension: %s", file)
 	}
 	return l.PlainLoad(config, file)
 }

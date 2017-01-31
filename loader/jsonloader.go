@@ -2,7 +2,6 @@ package loader
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -14,7 +13,7 @@ type Jsonloader struct{}
 // Load will read the file and unmarshal
 func (l *Jsonloader) Load(config interface{}, file string) error {
 	if !strings.HasSuffix(file, ".json") {
-		return errors.New(fmt.Sprintf("File does not have the json extension: %s", file))
+		return fmt.Errorf("File does not have the json extension: %s", file)
 	}
 	return l.PlainLoad(config, file)
 }
