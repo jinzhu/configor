@@ -1,6 +1,8 @@
 package loader
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -12,16 +14,19 @@ type Yamlloader struct{}
 
 // Load will read the file and unmarshal
 func (l *Yamlloader) Load(config interface{}, file string) error {
+	if !strings.HasSuffix(file, ".yml") && !strings.HasSuffix(file, ".yaml") {
+		return errors.New(fmt.Sprintf("File does not have the toml extension: %s", file))
+	}
+	return l.PlainLoad(config, file)
+}
+
+// PlainLoad just does the unmarshalling
+func (l *Yamlloader) PlainLoad(config interface{}, file string) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return err
 	}
-
-	switch {
-	case strings.HasSuffix(file, ".yaml") || strings.HasSuffix(file, ".yml"):
-		return yaml.Unmarshal(data, config)
-	}
-	return nil
+	return yaml.Unmarshal(data, config)
 }
 
 // Dump will marshal config to a file

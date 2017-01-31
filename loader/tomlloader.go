@@ -2,6 +2,8 @@ package loader
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -11,18 +13,21 @@ import (
 // Tomloader used to load / dump TOML files
 type Tomlloader struct{}
 
-// Load will read the file and unmarshal it
+// Load will read the file and unmarshal
 func (l *Tomlloader) Load(config interface{}, file string) error {
+	if !strings.HasSuffix(file, ".toml") {
+		return errors.New(fmt.Sprintf("File does not have the toml extension: %s", file))
+	}
+	return l.PlainLoad(config, file)
+}
+
+// PlainLoad just does the unmarshalling
+func (l *Tomlloader) PlainLoad(config interface{}, file string) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return err
 	}
-
-	switch {
-	case strings.HasSuffix(file, ".toml"):
-		return toml.Unmarshal(data, config)
-	}
-	return nil
+	return toml.Unmarshal(data, config)
 }
 
 // Dump will marshal config to a file
