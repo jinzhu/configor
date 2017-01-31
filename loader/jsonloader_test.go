@@ -1,11 +1,11 @@
-package configor_test
+package loader_test
 
 import (
 	"fmt"
 	"io/ioutil"
 	"testing"
 
-	"github.com/gophersgang/configor"
+	"github.com/gophersgang/configor/loader"
 )
 
 var (
@@ -14,7 +14,7 @@ var (
 
 func TestJsonDump(t *testing.T) {
 	config := generateDefaultConfig()
-	loader := &configor.Jsonloader{}
+	loader := &loader.Jsonloader{}
 	loader.Dump(config, jsonConfigFile)
 
 	dat, err := ioutil.ReadFile(jsonConfigFile)
@@ -29,7 +29,7 @@ func TestJsonLoad(t *testing.T) {
 	little := Config{
 		APPName: "little config",
 	}
-	loader := &configor.Jsonloader{}
+	loader := &loader.Jsonloader{}
 
 	loader.Dump(config, jsonConfigFile)
 	loader.Load(&little, jsonConfigFile)

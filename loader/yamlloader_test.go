@@ -1,11 +1,11 @@
-package configor_test
+package loader_test
 
 import (
 	"fmt"
 	"io/ioutil"
 	"testing"
 
-	"github.com/gophersgang/configor"
+	"github.com/gophersgang/configor/loader"
 )
 
 var (
@@ -14,7 +14,7 @@ var (
 
 func TestYamlDump(t *testing.T) {
 	config := generateDefaultConfig()
-	loader := &configor.Yamlloader{}
+	loader := &loader.Yamlloader{}
 	loader.Dump(config, yamlConfigFile)
 
 	dat, err := ioutil.ReadFile(yamlConfigFile)
@@ -29,7 +29,7 @@ func TestYamlLoad(t *testing.T) {
 	little := Config{
 		APPName: "little config",
 	}
-	loader := &configor.Yamlloader{}
+	loader := &loader.Yamlloader{}
 
 	loader.Dump(config, yamlConfigFile)
 	loader.Load(&little, yamlConfigFile)

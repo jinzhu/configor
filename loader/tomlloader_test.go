@@ -1,11 +1,11 @@
-package configor_test
+package loader_test
 
 import (
 	"fmt"
 	"io/ioutil"
 	"testing"
 
-	"github.com/gophersgang/configor"
+	"github.com/gophersgang/configor/loader"
 )
 
 var (
@@ -14,7 +14,7 @@ var (
 
 func TestTomlDump(t *testing.T) {
 	config := generateDefaultConfig()
-	loader := &configor.Tomlloader{}
+	loader := &loader.Tomlloader{}
 	loader.Dump(config, tomlConfigFile)
 
 	dat, err := ioutil.ReadFile(tomlConfigFile)
@@ -29,7 +29,7 @@ func TestTomlLoad(t *testing.T) {
 	little := Config{
 		APPName: "little config",
 	}
-	loader := &configor.Tomlloader{}
+	loader := &loader.Tomlloader{}
 
 	loader.Dump(config, tomlConfigFile)
 	loader.Load(&little, tomlConfigFile)

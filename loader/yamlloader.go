@@ -1,4 +1,4 @@
-package configor
+package loader
 
 import (
 	"io/ioutil"

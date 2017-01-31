@@ -1,6 +1,6 @@
-package configor
+package loader
 
-type loader interface {
+type Loader interface {
 	Load(config interface{}, file string) error
 	Dump(config interface{}, file string) error
 }
