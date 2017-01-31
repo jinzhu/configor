@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/gophersgang/configor.svg?branch=master)](https://travis-ci.org/gophersgang/configor) [![Coverage Status](https://coveralls.io/repos/gophersgang/configor/badge.svg?branch=master&service=github)](https://coveralls.io/github/gophersgang/configor?branch=master) [![](https://godoc.org/github.com/gophersgang/configor?status.svg)](http://godoc.org/github.com/gophersgang/configor) [![](http://goreportcard.com/badge/gophersgang/configor)](http://goreportcard.com/report/gophersgang/configor)
 # Configor
 
 Golang Configuration tool that support YAML, JSON, Shell Environment
