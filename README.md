@@ -1,6 +1,6 @@
 # Configor
 
-Golang Configuration tool that support YAML, JSON, Shell Environment
+Golang Configuration tool that support YAML, JSON, TOML, Shell Environment
 
 ## Usage
 
