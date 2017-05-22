@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/BurntSushi/toml"
-	"github.com/jinzhu/configor"
+	"github.com/gophersgang/configor"
 )
 
 type Anonymous struct {
