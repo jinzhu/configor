@@ -34,6 +34,8 @@ type Config struct {
 	}
 
 	Anonymous `anonymous:"true"`
+
+	private string
 }
 
 func generateDefaultConfig() Config {
