@@ -10,8 +10,9 @@ type Configor struct {
 }
 
 type Config struct {
-	Environment string
-	ENVPrefix   string
+	Environment          string
+	ENVPrefix            string
+	ErrorOnUnmatchedKeys bool
 }
 
 // New initialize a Configor
@@ -38,10 +39,17 @@ func (configor *Configor) GetEnvironment() string {
 	return configor.Environment
 }
 
+// GetErrorOnUnmatchedKeys returns a boolean indicating if an error should be
+// thrown if there are keys in the config file that do not correspond to the
+// config struct
+func (configor *Configor) GetErrorOnUnmatchedKeys() bool {
+	return configor.ErrorOnUnmatchedKeys
+}
+
 // Load will unmarshal configurations to struct from files that you provide
 func (configor *Configor) Load(config interface{}, files ...string) error {
 	for _, file := range configor.getConfigurationFiles(files...) {
-		if err := processFile(config, file); err != nil {
+		if err := processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
 			return err
 		}
 	}

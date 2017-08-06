@@ -14,6 +14,14 @@ import (
 	yaml "gopkg.in/yaml.v1"
 )
 
+type unmatchedKeysError struct {
+	Keys []string
+}
+
+func (e *unmatchedKeysError) Error() string {
+	return fmt.Sprintf("There are keys in the config file that do not match any field in the given struct: %v", e.Keys)
+}
+
 func (configor *Configor) getENVPrefix(config interface{}) string {
 	if configor.Config.ENVPrefix == "" {
 		if prefix := os.Getenv("CONFIGOR_ENV_PREFIX"); prefix != "" {
@@ -74,7 +82,7 @@ func (configor *Configor) getConfigurationFiles(files ...string) []string {
 	return results
 }
 
-func processFile(config interface{}, file string) error {
+func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return err
@@ -84,19 +92,42 @@ func processFile(config interface{}, file string) error {
 	case strings.HasSuffix(file, ".yaml") || strings.HasSuffix(file, ".yml"):
 		return yaml.Unmarshal(data, config)
 	case strings.HasSuffix(file, ".toml"):
-		return toml.Unmarshal(data, config)
+		return unmarshalToml(data, config, errorOnUnmatchedKeys)
 	case strings.HasSuffix(file, ".json"):
 		return json.Unmarshal(data, config)
 	default:
-		if toml.Unmarshal(data, config) != nil {
-			if json.Unmarshal(data, config) != nil {
-				if yaml.Unmarshal(data, config) != nil {
-					return errors.New("failed to decode config")
-				}
+
+		if err := unmarshalToml(data, config, errorOnUnmatchedKeys); err == nil {
+			return nil
+		} else if errUnmatchedKeys, ok := err.(*unmatchedKeysError); ok {
+			return errUnmatchedKeys
+		}
+
+		if json.Unmarshal(data, config) != nil {
+			if yaml.Unmarshal(data, config) != nil {
+				return errors.New("failed to decode config")
 			}
 		}
+
 		return nil
 	}
+}
+
+func getStringTomlKeys(list []toml.Key) []string {
+	arr := make([]string, len(list))
+
+	for index, key := range list {
+		arr[index] = key.String()
+	}
+	return arr
+}
+
+func unmarshalToml(data []byte, config interface{}, errorOnUnmatchedKeys bool) error {
+	metadata, err := toml.Decode(string(data), config)
+	if err == nil && len(metadata.Undecoded()) != 0 && errorOnUnmatchedKeys {
+		return &unmatchedKeysError{Keys: getStringTomlKeys(metadata.Undecoded())}
+	}
+	return err
 }
 
 func getPrefixForStruct(prefixes []string, fieldStruct *reflect.StructField) []string {
