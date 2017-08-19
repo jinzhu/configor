@@ -175,7 +175,7 @@ func TestMissingRequiredValue(t *testing.T) {
 	}
 }
 
-func TestUnmatchedValueInConfigFile(t *testing.T) {
+func TestUnmatchedTomlValueInConfigFile(t *testing.T) {
 	type configStruct struct {
 		Name string
 	}
@@ -197,6 +197,35 @@ func TestUnmatchedValueInConfigFile(t *testing.T) {
 		var result configStruct
 		if err := configor.New(&configor.Config{ErrorOnUnmatchedKeys: true}).Load(&result, file.Name()); err == nil {
 			t.Errorf("Should get error when loading configuration with extra keys")
+		}
+
+	} else {
+		t.Errorf("failed to marshal config")
+	}
+}
+
+func TestUnmatchedTomlValueInConfigFileNoError(t *testing.T) {
+	type configStruct struct {
+		Name string
+	}
+	type configFile struct {
+		Name string
+		Test string
+	}
+	config := configFile{Name: "test", Test: "ATest"}
+
+	file, err := ioutil.TempFile("/tmp", "configor")
+	if err != nil {
+		t.Fatal("Could not create temp file")
+	}
+	defer os.Remove(file.Name())
+	defer file.Close()
+
+	if err := toml.NewEncoder(file).Encode(config); err == nil {
+
+		var result configStruct
+		if err := configor.New(&configor.Config{}).Load(&result, file.Name()); err != nil {
+			t.Errorf("Should NOT get error when loading configuration with extra keys")
 		}
 
 	} else {

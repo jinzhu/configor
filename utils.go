@@ -14,11 +14,15 @@ import (
 	yaml "gopkg.in/yaml.v1"
 )
 
-type unmatchedKeysError struct {
-	Keys []string
+// UnmatchedTomlKeysError errors are returned by the Load function when
+// ErrorOnUnmatchedKeys is set to true and there are unmatched keys in the input
+// toml config file. The string returned by Error() contains the names of the
+// missing keys.
+type UnmatchedTomlKeysError struct {
+	Keys []toml.Key
 }
 
-func (e *unmatchedKeysError) Error() string {
+func (e *UnmatchedTomlKeysError) Error() string {
 	return fmt.Sprintf("There are keys in the config file that do not match any field in the given struct: %v", e.Keys)
 }
 
@@ -99,7 +103,7 @@ func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) err
 
 		if err := unmarshalToml(data, config, errorOnUnmatchedKeys); err == nil {
 			return nil
-		} else if errUnmatchedKeys, ok := err.(*unmatchedKeysError); ok {
+		} else if errUnmatchedKeys, ok := err.(*UnmatchedTomlKeysError); ok {
 			return errUnmatchedKeys
 		}
 
@@ -113,7 +117,8 @@ func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) err
 	}
 }
 
-func getStringTomlKeys(list []toml.Key) []string {
+// GetStringTomlKeys returns a string array of the names of the keys that are passed in as args
+func GetStringTomlKeys(list []toml.Key) []string {
 	arr := make([]string, len(list))
 
 	for index, key := range list {
@@ -124,8 +129,8 @@ func getStringTomlKeys(list []toml.Key) []string {
 
 func unmarshalToml(data []byte, config interface{}, errorOnUnmatchedKeys bool) error {
 	metadata, err := toml.Decode(string(data), config)
-	if err == nil && len(metadata.Undecoded()) != 0 && errorOnUnmatchedKeys {
-		return &unmatchedKeysError{Keys: getStringTomlKeys(metadata.Undecoded())}
+	if err == nil && len(metadata.Undecoded()) > 0 && errorOnUnmatchedKeys {
+		return &UnmatchedTomlKeysError{Keys: metadata.Undecoded()}
 	}
 	return err
 }

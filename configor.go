@@ -10,8 +10,12 @@ type Configor struct {
 }
 
 type Config struct {
-	Environment          string
-	ENVPrefix            string
+	Environment string
+	ENVPrefix   string
+
+	// Supported only for toml and yaml files.
+	// json does not currently support this: https://github.com/golang/go/issues/15314
+	// This setting will be ignored for json files.
 	ErrorOnUnmatchedKeys bool
 }
 
