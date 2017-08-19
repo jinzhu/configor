@@ -59,6 +59,17 @@ contacts:
 configor.Load(&Config, "application.yml", "database.json")
 ```
 
+* Return error on unmatched keys
+
+Return an error on finding keys in the config file that do not match any fields in the config struct.
+In the example below, an error will be returned if config.toml contains keys that do not match any fields in the ConfigStruct struct.
+If ErrorOnUnmatchedKeys is not set, it defaults to false.
+Note that this is currently only supported for toml and yaml files. ErrorOnUnmatchedKeys will be ignored for json files. This may change in the future when the json library adds support for this [https://github.com/golang/go/issues/15314].
+
+```go
+err := configor.New(&configor.Config{ErrorOnUnmatchedKeys: true}).Load(&ConfigStruct, "config.toml")
+```
+
 * Load configuration by environment
 
 Use `CONFIGOR_ENV` to set environment, if `CONFIGOR_ENV` not set, environment will be `development` by default, and it will be `test` when running tests with `go test`
