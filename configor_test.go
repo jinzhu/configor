@@ -20,6 +20,7 @@ type Anonymous struct {
 
 type Config struct {
 	APPName string `default:"configor"`
+	Hosts   []string
 
 	DB struct {
 		Name     string
@@ -41,6 +42,7 @@ type Config struct {
 func generateDefaultConfig() Config {
 	config := Config{
 		APPName: "configor",
+		Hosts:   []string{"http://example.org", "http://jinzhu.me"},
 		DB: struct {
 			Name     string
 			User     string `default:"root"`
@@ -254,13 +256,16 @@ func TestOverwriteConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T) {
 			file.Write(bytes)
 			var result Config
 			os.Setenv("CONFIGOR_APPNAME", "config2")
+			os.Setenv("CONFIGOR_HOSTS", "- http://example.org\n- http://jinzhu.me")
 			os.Setenv("CONFIGOR_DB_NAME", "db_name")
 			defer os.Setenv("CONFIGOR_APPNAME", "")
+			defer os.Setenv("CONFIGOR_HOSTS", "")
 			defer os.Setenv("CONFIGOR_DB_NAME", "")
 			configor.Load(&result, file.Name())
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
+			defaultConfig.Hosts = []string{"http://example.org", "http://jinzhu.me"}
 			defaultConfig.DB.Name = "db_name"
 			if !reflect.DeepEqual(result, defaultConfig) {
 				t.Errorf("result should equal to original configuration")
