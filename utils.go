@@ -121,6 +121,10 @@ func processTags(config interface{}, prefixes ...string) error {
 			envName     = fieldStruct.Tag.Get("env") // read configuration from shell env
 		)
 
+		if !field.CanAddr() || !field.CanInterface() {
+			continue
+		}
+
 		if envName == "" {
 			envNames = append(envNames, strings.Join(append(prefixes, fieldStruct.Name), "_"))                  // Configor_DB_Name
 			envNames = append(envNames, strings.ToUpper(strings.Join(append(prefixes, fieldStruct.Name), "_"))) // CONFIGOR_DB_NAME
