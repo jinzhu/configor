@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	yaml "gopkg.in/yaml.v1"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // UnmatchedTomlKeysError errors are returned by the Load function when
@@ -94,6 +94,9 @@ func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) err
 
 	switch {
 	case strings.HasSuffix(file, ".yaml") || strings.HasSuffix(file, ".yml"):
+		if errorOnUnmatchedKeys {
+			return yaml.UnmarshalStrict(data, config)
+		}
 		return yaml.Unmarshal(data, config)
 	case strings.HasSuffix(file, ".toml"):
 		return unmarshalToml(data, config, errorOnUnmatchedKeys)
@@ -107,13 +110,24 @@ func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) err
 			return errUnmatchedKeys
 		}
 
-		if json.Unmarshal(data, config) != nil {
-			if yaml.Unmarshal(data, config) != nil {
-				return errors.New("failed to decode config")
-			}
+		if json.Unmarshal(data, config) == nil {
+			return nil
 		}
 
-		return nil
+		var yamlError error
+		if errorOnUnmatchedKeys {
+			yamlError = yaml.UnmarshalStrict(data, config)
+		} else {
+			yamlError = yaml.Unmarshal(data, config)
+		}
+
+		if yamlError == nil {
+			return nil
+		} else if yErr, ok := yamlError.(*yaml.TypeError); ok {
+			return yErr
+		}
+
+		return errors.New("failed to decode config")
 	}
 }
 
