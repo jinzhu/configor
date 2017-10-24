@@ -1,6 +1,7 @@
 package configor
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 )
@@ -12,6 +13,8 @@ type Configor struct {
 type Config struct {
 	Environment string
 	ENVPrefix   string
+	Debug       bool
+	Verbose     bool
 }
 
 // New initialize a Configor
@@ -19,6 +22,15 @@ func New(config *Config) *Configor {
 	if config == nil {
 		config = &Config{}
 	}
+
+	if os.Getenv("CONFIGOR_DEBUG_MODE") != "" {
+		config.Debug = true
+	}
+
+	if os.Getenv("CONFIGOR_VERBOSE_MODE") != "" {
+		config.Verbose = true
+	}
+
 	return &Configor{Config: config}
 }
 
@@ -40,17 +52,26 @@ func (configor *Configor) GetEnvironment() string {
 
 // Load will unmarshal configurations to struct from files that you provide
 func (configor *Configor) Load(config interface{}, files ...string) error {
+	defer func() {
+		if configor.Config.Debug || configor.Config.Verbose {
+			fmt.Printf("Configuration:\n  %#v\n", config)
+		}
+	}()
+
 	for _, file := range configor.getConfigurationFiles(files...) {
+		if configor.Config.Debug || configor.Config.Verbose {
+			fmt.Printf("Loading configurations from file '%v'...\n", file)
+		}
 		if err := processFile(config, file); err != nil {
 			return err
 		}
 	}
 
-	if prefix := configor.getENVPrefix(config); prefix == "-" {
-		return processTags(config)
-	} else {
-		return processTags(config, prefix)
+	prefix := configor.getENVPrefix(config)
+	if prefix == "-" {
+		return configor.processTags(config)
 	}
+	return configor.processTags(config, prefix)
 }
 
 // ENV return environment

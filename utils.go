@@ -45,6 +45,10 @@ func getConfigurationFileWithENVPrefix(file, env string) (string, error) {
 func (configor *Configor) getConfigurationFiles(files ...string) []string {
 	var results []string
 
+	if configor.Config.Debug || configor.Config.Verbose {
+		fmt.Printf("Current environment: '%v'\n", configor.GetEnvironment())
+	}
+
 	for i := len(files) - 1; i >= 0; i-- {
 		foundFile := false
 		file := files[i]
@@ -106,7 +110,7 @@ func getPrefixForStruct(prefixes []string, fieldStruct *reflect.StructField) []s
 	return append(prefixes, fieldStruct.Name)
 }
 
-func processTags(config interface{}, prefixes ...string) error {
+func (configor *Configor) processTags(config interface{}, prefixes ...string) error {
 	configValue := reflect.Indirect(reflect.ValueOf(config))
 	if configValue.Kind() != reflect.Struct {
 		return errors.New("invalid config, should be struct")
@@ -132,9 +136,16 @@ func processTags(config interface{}, prefixes ...string) error {
 			envNames = []string{envName}
 		}
 
+		if configor.Config.Verbose {
+			fmt.Printf("Trying to load struct `%v`'s field `%v` from env %v\n", configType.Name(), fieldStruct.Name, strings.Join(envNames, ", "))
+		}
+
 		// Load From Shell ENV
 		for _, env := range envNames {
 			if value := os.Getenv(env); value != "" {
+				if configor.Config.Debug || configor.Config.Verbose {
+					fmt.Printf("Loading configuration for struct `%v`'s field `%v` from env %v...\n", configType.Name(), fieldStruct.Name, env)
+				}
 				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
 					return err
 				}
@@ -159,7 +170,7 @@ func processTags(config interface{}, prefixes ...string) error {
 		}
 
 		if field.Kind() == reflect.Struct {
-			if err := processTags(field.Addr().Interface(), getPrefixForStruct(prefixes, &fieldStruct)...); err != nil {
+			if err := configor.processTags(field.Addr().Interface(), getPrefixForStruct(prefixes, &fieldStruct)...); err != nil {
 				return err
 			}
 		}
@@ -167,7 +178,7 @@ func processTags(config interface{}, prefixes ...string) error {
 		if field.Kind() == reflect.Slice {
 			for i := 0; i < field.Len(); i++ {
 				if reflect.Indirect(field.Index(i)).Kind() == reflect.Struct {
-					if err := processTags(field.Index(i).Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(i))...); err != nil {
+					if err := configor.processTags(field.Index(i).Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(i))...); err != nil {
 						return err
 					}
 				}

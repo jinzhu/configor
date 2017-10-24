@@ -50,6 +50,18 @@ contacts:
   email: test@test.com
 ```
 
+## Debug Mode & Verbose Mode
+
+Debug/Verbose mode is helpful when debuging your application, `debug mode` will let you know how `configor` loaded your configurations, like from which file, shell env, `verbose mode` will tell you even more, like those shell environments `configor` tried to load.
+
+```go
+// Enable debug mode or set env `CONFIGOR_DEBUG_MODE` to true when running your application
+configor.New(&configor.Config{Debug: true}).Load(&Config, "config.json")
+
+// Enable verbose mode or set env `CONFIGOR_VERBOSE_MODE` to true when running your application
+configor.New(&configor.Config{Verbose: true}).Load(&Config, "config.json")
+```
+
 # Advanced Usage
 
 * Load mutiple configurations
