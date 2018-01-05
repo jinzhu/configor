@@ -42,8 +42,9 @@ func getConfigurationFileWithENVPrefix(file, env string) (string, error) {
 	return "", fmt.Errorf("failed to find file %v", file)
 }
 
-func (configor *Configor) getConfigurationFiles(files ...string) []string {
+func (configor *Configor) getConfigurationFiles(files ...string) ([]string, error) {
 	var results []string
+	var err error
 
 	if configor.Config.Debug || configor.Config.Verbose {
 		fmt.Printf("Current environment: '%v'\n", configor.GetEnvironment())
@@ -67,15 +68,15 @@ func (configor *Configor) getConfigurationFiles(files ...string) []string {
 
 		// check example configuration
 		if !foundFile {
-			if example, err := getConfigurationFileWithENVPrefix(file, "example"); err == nil {
-				fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
+			if example, e := getConfigurationFileWithENVPrefix(file, "example"); e == nil {
 				results = append(results, example)
+				err = errors.New(strings.Join([]string{"Failed to find configuration ", file, "using example file ", example}, ""))
 			} else {
-				fmt.Printf("Failed to find configuration %v\n", file)
+				err = errors.New("Failed to find configuration " + file)
 			}
 		}
 	}
-	return results
+	return results, err
 }
 
 func processFile(config interface{}, file string) error {

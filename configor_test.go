@@ -72,11 +72,11 @@ func generateDefaultConfig() Config {
 
 func TestLoadNormalConfig(t *testing.T) {
 	config := generateDefaultConfig()
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 
 			var result Config
 			configor.Load(&result, file.Name())
@@ -140,11 +140,11 @@ func TestDefaultValue(t *testing.T) {
 	config.APPName = ""
 	config.DB.Port = 0
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 
 			var result Config
 			configor.Load(&result, file.Name())
@@ -161,11 +161,11 @@ func TestMissingRequiredValue(t *testing.T) {
 	config := generateDefaultConfig()
 	config.DB.Password = ""
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 
 			var result Config
 			if err := configor.Load(&result, file.Name()); err == nil {
@@ -249,11 +249,11 @@ func TestLoadConfigurationByEnvironmentSetByConfig(t *testing.T) {
 func TestOverwriteConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T) {
 	config := generateDefaultConfig()
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 			var result Config
 			os.Setenv("CONFIGOR_APPNAME", "config2")
 			os.Setenv("CONFIGOR_HOSTS", "- http://example.org\n- http://jinzhu.me")
@@ -277,11 +277,11 @@ func TestOverwriteConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T) {
 func TestOverwriteConfigurationWithEnvironment(t *testing.T) {
 	config := generateDefaultConfig()
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 			var result Config
 			os.Setenv("CONFIGOR_ENV_PREFIX", "app")
 			os.Setenv("APP_APPNAME", "config2")
@@ -304,11 +304,11 @@ func TestOverwriteConfigurationWithEnvironment(t *testing.T) {
 func TestOverwriteConfigurationWithEnvironmentThatSetByConfig(t *testing.T) {
 	config := generateDefaultConfig()
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 			os.Setenv("APP1_APPName", "config2")
 			os.Setenv("APP1_DB_Name", "db_name")
 			defer os.Setenv("APP1_APPName", "")
@@ -331,11 +331,11 @@ func TestOverwriteConfigurationWithEnvironmentThatSetByConfig(t *testing.T) {
 func TestResetPrefixToBlank(t *testing.T) {
 	config := generateDefaultConfig()
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 			var result Config
 			os.Setenv("CONFIGOR_ENV_PREFIX", "-")
 			os.Setenv("APPNAME", "config2")
@@ -358,11 +358,11 @@ func TestResetPrefixToBlank(t *testing.T) {
 func TestResetPrefixToBlank2(t *testing.T) {
 	config := generateDefaultConfig()
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 			var result Config
 			os.Setenv("CONFIGOR_ENV_PREFIX", "-")
 			os.Setenv("APPName", "config2")
@@ -385,11 +385,11 @@ func TestResetPrefixToBlank2(t *testing.T) {
 func TestReadFromEnvironmentWithSpecifiedEnvName(t *testing.T) {
 	config := generateDefaultConfig()
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 			var result Config
 			os.Setenv("DBPassword", "db_password")
 			defer os.Setenv("DBPassword", "")
@@ -407,11 +407,11 @@ func TestReadFromEnvironmentWithSpecifiedEnvName(t *testing.T) {
 func TestAnonymousStruct(t *testing.T) {
 	config := generateDefaultConfig()
 
-	if bytes, err := json.Marshal(config); err == nil {
+	if b, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+			file.Write(b)
 			var result Config
 			os.Setenv("CONFIGOR_DESCRIPTION", "environment description")
 			defer os.Setenv("CONFIGOR_DESCRIPTION", "")

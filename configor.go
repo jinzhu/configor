@@ -58,7 +58,15 @@ func (configor *Configor) Load(config interface{}, files ...string) error {
 		}
 	}()
 
-	for _, file := range configor.getConfigurationFiles(files...) {
+	files, err := configor.getConfigurationFiles(files...)
+	if err != nil {
+		if configor.Config.Debug || configor.Config.Verbose {
+			fmt.Print(err)
+		}
+		return err
+	}
+
+	for _, file := range files {
 		if configor.Config.Debug || configor.Config.Verbose {
 			fmt.Printf("Loading configurations from file '%v'...\n", file)
 		}
