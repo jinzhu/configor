@@ -174,10 +174,9 @@ func main() {
 }
 ```
 
-## Supporting the project
+## Contributing
 
-[![http://patreon.com/jinzhu](http://patreon_public_assets.s3.amazonaws.com/sized/becomeAPatronBanner.png)](http://patreon.com/jinzhu)
-
+You can help to make the project better, check out [http://gorm.io/contribute.html](http://gorm.io/contribute.html) for things you can do.
 
 ## Author
 
