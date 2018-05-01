@@ -39,6 +39,8 @@ func New(config *Config) *Configor {
 	return &Configor{Config: config}
 }
 
+var testRegexp = regexp.MustCompile("_test|(\\.test$)")
+
 // GetEnvironment get environment
 func (configor *Configor) GetEnvironment() string {
 	if configor.Environment == "" {
@@ -46,7 +48,7 @@ func (configor *Configor) GetEnvironment() string {
 			return env
 		}
 
-		if isTest, _ := regexp.MatchString(".test", os.Args[0]); isTest {
+		if testRegexp.MatchString(os.Args[0]) {
 			return "test"
 		}
 

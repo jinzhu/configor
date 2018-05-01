@@ -2,6 +2,8 @@
 
 Golang Configuration tool that support YAML, JSON, TOML, Shell Environment
 
+[![wercker status](https://app.wercker.com/status/9ebd3684ff8998501af5aac38a79a380/s/master "wercker status")](https://app.wercker.com/project/byKey/9ebd3684ff8998501af5aac38a79a380)
+
 ## Usage
 
 ```go
@@ -173,10 +175,9 @@ func main() {
 }
 ```
 
-## Supporting the project
+## Contributing
 
-[![http://patreon.com/jinzhu](http://patreon_public_assets.s3.amazonaws.com/sized/becomeAPatronBanner.png)](http://patreon.com/jinzhu)
-
+You can help to make the project better, check out [http://gorm.io/contribute.html](http://gorm.io/contribute.html) for things you can do.
 
 ## Author
 
