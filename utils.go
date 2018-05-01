@@ -1,7 +1,6 @@
 package configor
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -105,7 +104,7 @@ func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) err
 	case strings.HasSuffix(file, ".toml"):
 		return unmarshalToml(data, config, errorOnUnmatchedKeys)
 	case strings.HasSuffix(file, ".json"):
-		return json.Unmarshal(data, config)
+		return unmarshalJSON(data, config, errorOnUnmatchedKeys)
 	default:
 
 		if err := unmarshalToml(data, config, errorOnUnmatchedKeys); err == nil {
@@ -114,8 +113,10 @@ func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) err
 			return errUnmatchedKeys
 		}
 
-		if json.Unmarshal(data, config) == nil {
+		if err := unmarshalJSON(data, config, errorOnUnmatchedKeys); err == nil {
 			return nil
+		} else if strings.Contains(err.Error(), "json: unknown field") {
+			return err
 		}
 
 		var yamlError error
