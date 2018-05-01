@@ -46,7 +46,7 @@ func (configor *Configor) GetEnvironment() string {
 			return env
 		}
 
-		if isTest, _ := regexp.MatchString("/_test/", os.Args[0]); isTest {
+		if isTest, _ := regexp.MatchString(".test", os.Args[0]); isTest {
 			return "test"
 		}
 
