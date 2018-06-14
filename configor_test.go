@@ -194,22 +194,72 @@ func TestUnmatchedKeyInTomlConfigFile(t *testing.T) {
 	defer os.Remove(file.Name())
 	defer file.Close()
 
+	filename := file.Name()
+
 	if err := toml.NewEncoder(file).Encode(config); err == nil {
 
 		var result configStruct
 
 		// Do not return error when there are unmatched keys but ErrorOnUnmatchedKeys is false
-		if err := configor.New(&configor.Config{}).Load(&result, file.Name()); err != nil {
+		if err := configor.New(&configor.Config{}).Load(&result, filename); err != nil {
 			t.Errorf("Should NOT get error when loading configuration with extra keys")
 		}
 
-		if err := configor.New(&configor.Config{ErrorOnUnmatchedKeys: true}).Load(&result, file.Name()); err == nil {
+		// Return an error when there are unmatched keys and ErrorOnUnmatchedKeys is true
+		err := configor.New(&configor.Config{ErrorOnUnmatchedKeys: true}).Load(&result, filename)
+		if err == nil {
 			t.Errorf("Should get error when loading configuration with extra keys")
+		}
+
+		// The error should be of type UnmatchedTomlKeysError
+		tomlErr, ok := err.(*configor.UnmatchedTomlKeysError)
+		if !ok {
+			t.Errorf("Should get UnmatchedTomlKeysError error when loading configuration with extra keys")
+		}
+
+		// The error.Keys() function should return the "Test" key
+		keys := configor.GetStringTomlKeys(tomlErr.Keys)
+		if len(keys) != 1 || keys[0] != "Test" {
+			t.Errorf("The UnmatchedTomlKeysError should contain the Test key")
 		}
 
 	} else {
 		t.Errorf("failed to marshal config")
 	}
+
+	// Add .toml to the file name and test again
+	err = os.Rename(filename, filename+".toml")
+	if err != nil {
+		t.Errorf("Could not add suffix to file")
+	}
+	filename = filename + ".toml"
+	defer os.Remove(filename)
+
+	var result configStruct
+
+	// Do not return error when there are unmatched keys but ErrorOnUnmatchedKeys is false
+	if err := configor.New(&configor.Config{}).Load(&result, filename); err != nil {
+		t.Errorf("Should NOT get error when loading configuration with extra keys. Error: %v", err)
+	}
+
+	// Return an error when there are unmatched keys and ErrorOnUnmatchedKeys is true
+	err = configor.New(&configor.Config{ErrorOnUnmatchedKeys: true}).Load(&result, filename)
+	if err == nil {
+		t.Errorf("Should get error when loading configuration with extra keys")
+	}
+
+	// The error should be of type UnmatchedTomlKeysError
+	tomlErr, ok := err.(*configor.UnmatchedTomlKeysError)
+	if !ok {
+		t.Errorf("Should get UnmatchedTomlKeysError error when loading configuration with extra keys")
+	}
+
+	// The error.Keys() function should return the "Test" key
+	keys := configor.GetStringTomlKeys(tomlErr.Keys)
+	if len(keys) != 1 || keys[0] != "Test" {
+		t.Errorf("The UnmatchedTomlKeysError should contain the Test key")
+	}
+
 }
 
 func TestUnmatchedKeyInYamlConfigFile(t *testing.T) {
@@ -230,22 +280,55 @@ func TestUnmatchedKeyInYamlConfigFile(t *testing.T) {
 	defer os.Remove(file.Name())
 	defer file.Close()
 
+	filename := file.Name()
+
 	if data, err := yaml.Marshal(config); err == nil {
 		file.WriteString(string(data))
 
 		var result configStruct
 
 		// Do not return error when there are unmatched keys but ErrorOnUnmatchedKeys is false
-		if err := configor.New(&configor.Config{}).Load(&result, file.Name()); err != nil {
-			t.Errorf("Should NOT get error when loading configuration with extra keys")
+		if err := configor.New(&configor.Config{}).Load(&result, filename); err != nil {
+			t.Errorf("Should NOT get error when loading configuration with extra keys. Error: %v", err)
 		}
 
-		if err := configor.New(&configor.Config{ErrorOnUnmatchedKeys: true}).Load(&result, file.Name()); err == nil {
+		// Return an error when there are unmatched keys and ErrorOnUnmatchedKeys is true
+		if err := configor.New(&configor.Config{ErrorOnUnmatchedKeys: true}).Load(&result, filename); err == nil {
 			t.Errorf("Should get error when loading configuration with extra keys")
+
+			// The error should be of type *yaml.TypeError
+		} else if _, ok := err.(*yaml.TypeError); !ok {
+			// || !strings.Contains(err.Error(), "not found in struct") {
+			t.Errorf("Error should be of type yaml.TypeError. Instead error is %v", err)
 		}
 
 	} else {
 		t.Errorf("failed to marshal config")
+	}
+
+	// Add .yaml to the file name and test again
+	err = os.Rename(filename, filename+".yaml")
+	if err != nil {
+		t.Errorf("Could not add suffix to file")
+	}
+	filename = filename + ".yaml"
+	defer os.Remove(filename)
+
+	var result configStruct
+
+	// Do not return error when there are unmatched keys but ErrorOnUnmatchedKeys is false
+	if err := configor.New(&configor.Config{}).Load(&result, filename); err != nil {
+		t.Errorf("Should NOT get error when loading configuration with extra keys. Error: %v", err)
+	}
+
+	// Return an error when there are unmatched keys and ErrorOnUnmatchedKeys is true
+	if err := configor.New(&configor.Config{ErrorOnUnmatchedKeys: true}).Load(&result, filename); err == nil {
+		t.Errorf("Should get error when loading configuration with extra keys")
+
+		// The error should be of type *yaml.TypeError
+	} else if _, ok := err.(*yaml.TypeError); !ok {
+		// || !strings.Contains(err.Error(), "not found in struct") {
+		t.Errorf("Error should be of type yaml.TypeError. Instead error is %v", err)
 	}
 }
 
@@ -500,7 +583,7 @@ func TestAnonymousStruct(t *testing.T) {
 
 func TestENV(t *testing.T) {
 	if configor.ENV() != "test" {
-		t.Errorf("Env should be test when running `go test`")
+		t.Errorf("Env should be test when running `go test`, instead env is %v", configor.ENV())
 	}
 
 	os.Setenv("CONFIGOR_ENV", "production")

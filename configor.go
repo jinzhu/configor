@@ -16,9 +16,9 @@ type Config struct {
 	Debug       bool
 	Verbose     bool
 
-	// Supported only for toml and yaml files.
-	// json does not currently support this: https://github.com/golang/go/issues/15314
-	// This setting will be ignored for json files.
+	// In case of json files, this field will be used only when compiled with
+	// go 1.10 or later.
+	// This field will be ignored when compiled with go versions lower than 1.10.
 	ErrorOnUnmatchedKeys bool
 }
 
