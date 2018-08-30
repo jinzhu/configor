@@ -248,7 +248,6 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 						} else if reflect.DeepEqual(newVal.Interface(), reflect.New(field.Type().Elem()).Elem().Interface()) {
 							break
 						} else {
-							fmt.Println(newVal)
 							idx++
 							field.Set(reflect.Append(field, newVal))
 						}
