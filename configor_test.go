@@ -6,12 +6,12 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"regexp"
 	"testing"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/BurntSushi/toml"
-	"github.com/jinzhu/configor"
+	"github.com/minitauros/configor"
+	"gopkg.in/yaml.v2"
 )
 
 type Anonymous struct {
@@ -30,7 +30,7 @@ type Config struct {
 	}
 
 	Contacts []struct {
-		Name  string
+		Name  string `default:"Jinzhu"`
 		Email string `required:"true"`
 	}
 
@@ -55,7 +55,7 @@ func generateDefaultConfig() Config {
 			Port:     3306,
 		},
 		Contacts: []struct {
-			Name  string
+			Name  string `default:"Jinzhu"`
 			Email string `required:"true"`
 		}{
 			{
@@ -139,17 +139,31 @@ func TestDefaultValue(t *testing.T) {
 	config := generateDefaultConfig()
 	config.APPName = ""
 	config.DB.Port = 0
+	config.Contacts[0].Name = ""
 
 	if bytes, err := json.Marshal(config); err == nil {
 		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
 			defer file.Close()
 			defer os.Remove(file.Name())
-			file.Write(bytes)
+
+			byteString := string(bytes)
+
+			// Remove the appname setting from the json, for if we specify it (even a zero-value) it will overwrite the default.
+			r := regexp.MustCompile(`"APPName":"",`)
+			byteString = r.ReplaceAllString(byteString, "")
+
+			file.Write([]byte(byteString))
 
 			var result Config
 			configor.Load(&result, file.Name())
-			if !reflect.DeepEqual(result, generateDefaultConfig()) {
-				t.Errorf("result should be set default value correctly")
+
+			// The value for APPName should have been set, as its value was removed completely from the loaded JSON.
+			// DB port however should not have been overwritten by the default value, as we specified a value (a zero-value, but we did specify somoething) for it in our config.
+			defConfig := generateDefaultConfig()
+			defConfig.DB.Port = 0
+
+			if !reflect.DeepEqual(result, defConfig) {
+				t.Errorf("default values were not correctly set")
 			}
 		}
 	} else {

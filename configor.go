@@ -72,6 +72,15 @@ func (configor *Configor) Load(config interface{}, files ...string) error {
 		}
 	}()
 
+	// First load all the default values. This is necessary because if we load them after the values have been read
+	// from the yaml, when we reflect on the null value of the struct fields, if those null values match the actual
+	// values of the field, the field is considered to be "blank" or unset in the config, and then the default value
+	// is written over it. This is thus a fix of a previous version.
+	err := configor.processDefaults(config)
+	if err != nil {
+		return err
+	}
+
 	for _, file := range configor.getConfigurationFiles(files...) {
 		if configor.Config.Debug || configor.Config.Verbose {
 			fmt.Printf("Loading configurations from file '%v'...\n", file)
@@ -83,9 +92,9 @@ func (configor *Configor) Load(config interface{}, files ...string) error {
 
 	prefix := configor.getENVPrefix(config)
 	if prefix == "-" {
-		return configor.processTags(config)
+		return configor.processTags(config, false)
 	}
-	return configor.processTags(config, prefix)
+	return configor.processTags(config, false, prefix)
 }
 
 // ENV return environment

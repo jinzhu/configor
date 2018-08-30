@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // UnmatchedTomlKeysError errors are returned by the Load function when
@@ -161,7 +161,55 @@ func getPrefixForStruct(prefixes []string, fieldStruct *reflect.StructField) []s
 	return append(prefixes, fieldStruct.Name)
 }
 
-func (configor *Configor) processTags(config interface{}, prefixes ...string) error {
+// processDefaults iterates recursively over all the given config struct's fields and sets their value to the value specified in the "default" tag (if specified).
+func (configor *Configor) processDefaults(config interface{}, prefixes ...string) error {
+	configValue := reflect.Indirect(reflect.ValueOf(config))
+	if configValue.Kind() != reflect.Struct {
+		return errors.New("invalid config, should be struct")
+	}
+
+	configType := configValue.Type()
+	for i := 0; i < configType.NumField(); i++ {
+		var (
+			fieldStruct = configType.Field(i)
+			field       = configValue.Field(i)
+		)
+
+		if !field.CanAddr() || !field.CanInterface() {
+			continue
+		}
+
+		// Set default configuration
+		if value := fieldStruct.Tag.Get("default"); value != "" {
+			if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
+				return err
+			}
+		}
+
+		for field.Kind() == reflect.Ptr {
+			field = field.Elem()
+		}
+
+		if field.Kind() == reflect.Struct {
+			if err := configor.processDefaults(field.Addr().Interface(), getPrefixForStruct(prefixes, &fieldStruct)...); err != nil {
+				return err
+			}
+		}
+
+		if field.Kind() == reflect.Slice {
+			for i := 0; i < field.Len(); i++ {
+				if reflect.Indirect(field.Index(i)).Kind() == reflect.Struct {
+					if err := configor.processDefaults(field.Index(i).Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(i))...); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (configor *Configor) processTags(config interface{}, setDefaults bool, prefixes ...string) error {
 	configValue := reflect.Indirect(reflect.ValueOf(config))
 	if configValue.Kind() != reflect.Struct {
 		return errors.New("invalid config, should be struct")
@@ -205,12 +253,18 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 		}
 
 		if isBlank := reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()); isBlank {
-			// Set default configuration if blank
-			if value := fieldStruct.Tag.Get("default"); value != "" {
-				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
-					return err
+			if setDefaults {
+				if value := fieldStruct.Tag.Get("default"); value != "" {
+					if configor.Config.Debug || configor.Config.Verbose {
+						fmt.Println("Unmarshaling default value of '", value, "' into ", field.Interface())
+					}
+					if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
+						return err
+					}
 				}
-			} else if fieldStruct.Tag.Get("required") == "true" {
+			}
+
+			if fieldStruct.Tag.Get("required") == "true" {
 				// return error if it is required but blank
 				return errors.New(fieldStruct.Name + " is required, but blank")
 			}
@@ -221,7 +275,7 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 		}
 
 		if field.Kind() == reflect.Struct {
-			if err := configor.processTags(field.Addr().Interface(), getPrefixForStruct(prefixes, &fieldStruct)...); err != nil {
+			if err := configor.processTags(field.Addr().Interface(), setDefaults, getPrefixForStruct(prefixes, &fieldStruct)...); err != nil {
 				return err
 			}
 		}
@@ -229,7 +283,8 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 		if field.Kind() == reflect.Slice {
 			for i := 0; i < field.Len(); i++ {
 				if reflect.Indirect(field.Index(i)).Kind() == reflect.Struct {
-					if err := configor.processTags(field.Index(i).Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(i))...); err != nil {
+					// When processing a slice of structs we may set the default value, as we could not have known it before parsing the data into it and thus no default values can have been filled yet.
+					if err := configor.processTags(field.Index(i).Addr().Interface(), true, append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(i))...); err != nil {
 						return err
 					}
 				}
