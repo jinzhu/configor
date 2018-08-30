@@ -227,10 +227,31 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 		}
 
 		if field.Kind() == reflect.Slice {
-			for i := 0; i < field.Len(); i++ {
-				if reflect.Indirect(field.Index(i)).Kind() == reflect.Struct {
-					if err := configor.processTags(field.Index(i).Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(i))...); err != nil {
-						return err
+			arrLen := field.Len()
+			if arrLen > 0 {
+				for i := 0; i < arrLen; i++ {
+					if reflect.Indirect(field.Index(i)).Kind() == reflect.Struct {
+						if err := configor.processTags(field.Index(i).Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(i))...); err != nil {
+							return err
+						}
+					}
+				}
+			} else {
+				// load slice from env
+				newVal := reflect.New(field.Type().Elem()).Elem()
+				if newVal.Kind() == reflect.Struct {
+					idx := 0
+					for {
+						newVal = reflect.New(field.Type().Elem()).Elem()
+						if err := configor.processTags(newVal.Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(idx))...); err != nil {
+							return err
+						} else if reflect.DeepEqual(newVal.Interface(), reflect.New(field.Type().Elem()).Elem().Interface()) {
+							break
+						} else {
+							fmt.Println(newVal)
+							idx++
+							field.Set(reflect.Append(field, newVal))
+						}
 					}
 				}
 			}
