@@ -36,6 +36,8 @@ type Config struct {
 
 	Anonymous `anonymous:"true"`
 
+	MyMap map[string]string
+
 	private string
 }
 
@@ -66,6 +68,7 @@ func generateDefaultConfig() Config {
 		Anonymous: Anonymous{
 			Description: "This is an anonymous embedded struct whose environment variables should NOT include 'ANONYMOUS'",
 		},
+		MyMap: map[string]string{"a": "b"},
 	}
 	return config
 }
@@ -427,15 +430,18 @@ func TestOverwriteConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T) {
 			os.Setenv("CONFIGOR_APPNAME", "config2")
 			os.Setenv("CONFIGOR_HOSTS", "- http://example.org\n- http://jinzhu.me")
 			os.Setenv("CONFIGOR_DB_NAME", "db_name")
+			os.Setenv("CONFIGOR_MYMAP", `{"x":"y"}`)
 			defer os.Setenv("CONFIGOR_APPNAME", "")
 			defer os.Setenv("CONFIGOR_HOSTS", "")
 			defer os.Setenv("CONFIGOR_DB_NAME", "")
+			defer os.Setenv("CONFIGOR_MYMAP", "")
 			configor.Load(&result, file.Name())
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
 			defaultConfig.Hosts = []string{"http://example.org", "http://jinzhu.me"}
 			defaultConfig.DB.Name = "db_name"
+			defaultConfig.MyMap = map[string]string{"x":"y"}
 			if !reflect.DeepEqual(result, defaultConfig) {
 				t.Errorf("result should equal to original configuration")
 			}
