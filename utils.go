@@ -242,6 +242,13 @@ func (configor *Configor) processTags(config interface{}, setDefaults bool, pref
 		// Load From Shell ENV
 		for _, env := range envNames {
 			if value := os.Getenv(env); value != "" {
+				// If we are parsing the env var into a map, we need to set the map to its nil value first, or else
+				// unmarshaling the value into the map will append the value to the map instead of overwriting the
+				// existing value.
+				if field.Kind() == reflect.Map {
+					field.Set(reflect.Zero(fieldStruct.Type))
+				}
+
 				if configor.Config.Debug || configor.Config.Verbose {
 					fmt.Printf("Loading configuration for struct `%v`'s field `%v` from env %v...\n", configType.Name(), fieldStruct.Name, env)
 				}
