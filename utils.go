@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // UnmatchedTomlKeysError errors are returned by the Load function when
@@ -79,9 +79,11 @@ func (configor *Configor) getConfigurationFiles(files ...string) []string {
 		// check example configuration
 		if !foundFile {
 			if example, err := getConfigurationFileWithENVPrefix(file, "example"); err == nil {
-				fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
+				if !configor.Silent {
+					fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
+				}
 				results = append(results, example)
-			} else {
+			} else if !configor.Silent {
 				fmt.Printf("Failed to find configuration %v\n", file)
 			}
 		}
