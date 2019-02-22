@@ -20,4 +20,5 @@ build:
     - script:
         name: go test
         code: |
+          go get github.com/google/go-cmp/cmp
           go test ./...
