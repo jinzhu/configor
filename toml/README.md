@@ -8,8 +8,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/Orange637/configor"
-	"github.com/Orange637/configor/toml"
+	"github.com/jinzhu/configor"
+	"github.com/jinzhu/configor/toml"
 )
 
 var Config = struct {

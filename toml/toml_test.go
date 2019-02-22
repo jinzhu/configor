@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	toml "github.com/Orange637/configor/toml"
+	toml "github.com/jinzhu/configor/toml"
 	"github.com/google/go-cmp/cmp"
 )
 
