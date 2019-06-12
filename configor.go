@@ -15,6 +15,7 @@ type Config struct {
 	ENVPrefix   string
 	Debug       bool
 	Verbose     bool
+	Silent      bool
 
 	// In case of json files, this field will be used only when compiled with
 	// go 1.10 or later.
@@ -34,6 +35,10 @@ func New(config *Config) *Configor {
 
 	if os.Getenv("CONFIGOR_VERBOSE_MODE") != "" {
 		config.Verbose = true
+	}
+
+	if os.Getenv("CONFIGOR_SILENT_MODE") != "" {
+		config.Silent = true
 	}
 
 	return &Configor{Config: config}
