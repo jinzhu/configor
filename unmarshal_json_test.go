@@ -1,5 +1,3 @@
-// +build go1.10
-
 package configor_test
 
 import (
