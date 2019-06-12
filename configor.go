@@ -70,9 +70,13 @@ func (configor *Configor) GetErrorOnUnmatchedKeys() bool {
 }
 
 // Load will unmarshal configurations to struct from files that you provide
-func (configor *Configor) Load(config interface{}, files ...string) error {
+func (configor *Configor) Load(config interface{}, files ...string) (err error) {
 	defer func() {
 		if configor.Config.Debug || configor.Config.Verbose {
+			if err != nil {
+				fmt.Printf("Failed to load configuration from %v, got %v\n", files, err)
+			}
+
 			fmt.Printf("Configuration:\n  %#v\n", config)
 		}
 	}()
@@ -81,16 +85,17 @@ func (configor *Configor) Load(config interface{}, files ...string) error {
 		if configor.Config.Debug || configor.Config.Verbose {
 			fmt.Printf("Loading configurations from file '%v'...\n", file)
 		}
-		if err := processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
+		if err = processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
 			return err
 		}
 	}
 
 	prefix := configor.getENVPrefix(config)
 	if prefix == "-" {
-		return configor.processTags(config)
+		err = configor.processTags(config)
 	}
-	return configor.processTags(config, prefix)
+	err = configor.processTags(config, prefix)
+	return
 }
 
 // ENV return environment

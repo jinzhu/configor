@@ -38,7 +38,7 @@ type testConfig struct {
 }
 
 func generateDefaultConfig() testConfig {
-	config := testConfig{
+	return testConfig{
 		APPName: "configor",
 		Hosts:   []string{"http://example.org", "http://jinzhu.me"},
 		DB: struct {
@@ -65,7 +65,6 @@ func generateDefaultConfig() testConfig {
 			Description: "This is an anonymous embedded struct whose environment variables should NOT include 'ANONYMOUS'",
 		},
 	}
-	return config
 }
 
 func TestLoadNormaltestConfig(t *testing.T) {
