@@ -219,8 +219,21 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 				if configor.Config.Debug || configor.Config.Verbose {
 					fmt.Printf("Loading configuration for struct `%v`'s field `%v` from env %v...\n", configType.Name(), fieldStruct.Name, env)
 				}
-				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
-					return err
+
+				switch reflect.Indirect(field).Kind() {
+				case reflect.Bool:
+					switch strings.ToLower(value) {
+					case "", "0", "f", "false":
+						field.Set(reflect.ValueOf(false))
+					default:
+						field.Set(reflect.ValueOf(true))
+					}
+				case reflect.String:
+					field.Set(reflect.ValueOf(value))
+				default:
+					if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
+						return err
+					}
 				}
 				break
 			}

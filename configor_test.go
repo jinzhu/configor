@@ -632,3 +632,31 @@ func TestSliceFromEnv(t *testing.T) {
 		t.Fatalf("unexpected result:%+v", result)
 	}
 }
+
+func TestConfigFromEnv(t *testing.T) {
+	type config struct {
+		LineBreakString string `required:"true"`
+		Count           int64
+		Slient          bool
+	}
+
+	cfg := &config{}
+
+	os.Setenv("CONFIGOR_ENV_PREFIX", "CONFIGOR")
+	os.Setenv("CONFIGOR_LineBreakString", "Line one\nLine two\nLine three\nAnd more lines")
+	os.Setenv("CONFIGOR_Slient", "1")
+	os.Setenv("CONFIGOR_Count", "10")
+	Load(cfg)
+
+	if os.Getenv("CONFIGOR_LineBreakString") != cfg.LineBreakString {
+		t.Error("Failed to load value has line break from env")
+	}
+
+	if !cfg.Slient {
+		t.Error("Failed to load bool from env")
+	}
+
+	if cfg.Count != 10 {
+		t.Error("Failed to load number from env")
+	}
+}
