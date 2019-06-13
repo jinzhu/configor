@@ -1,9 +1,9 @@
 package configor
 
 import (
-	"fmt"
 	"os"
 	"regexp"
+	"time"
 )
 
 type Configor struct {
@@ -11,11 +11,13 @@ type Configor struct {
 }
 
 type Config struct {
-	Environment string
-	ENVPrefix   string
-	Debug       bool
-	Verbose     bool
-	Silent      bool
+	Environment        string
+	ENVPrefix          string
+	Debug              bool
+	Verbose            bool
+	Silent             bool
+	AutoReload         bool
+	AutoReloadInterval time.Duration
 
 	// In case of json files, this field will be used only when compiled with
 	// go 1.10 or later.
@@ -39,6 +41,10 @@ func New(config *Config) *Configor {
 
 	if os.Getenv("CONFIGOR_SILENT_MODE") != "" {
 		config.Silent = true
+	}
+
+	if config.AutoReload && config.AutoReloadInterval == 0 {
+		config.AutoReloadInterval = time.Second
 	}
 
 	return &Configor{Config: config}
@@ -71,30 +77,17 @@ func (configor *Configor) GetErrorOnUnmatchedKeys() bool {
 
 // Load will unmarshal configurations to struct from files that you provide
 func (configor *Configor) Load(config interface{}, files ...string) (err error) {
-	defer func() {
-		if configor.Config.Debug || configor.Config.Verbose {
-			if err != nil {
-				fmt.Printf("Failed to load configuration from %v, got %v\n", files, err)
+	err = configor.load(config, files...)
+
+	if err == nil && configor.Config.AutoReload {
+		go func() {
+			timer := time.NewTimer(configor.Config.AutoReloadInterval)
+			for range timer.C {
+				configor.load(config, files...)
+				timer.Reset(configor.Config.AutoReloadInterval)
 			}
-
-			fmt.Printf("Configuration:\n  %#v\n", config)
-		}
-	}()
-
-	for _, file := range configor.getConfigurationFiles(files...) {
-		if configor.Config.Debug || configor.Config.Verbose {
-			fmt.Printf("Loading configurations from file '%v'...\n", file)
-		}
-		if err = processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
-			return err
-		}
+		}()
 	}
-
-	prefix := configor.getENVPrefix(config)
-	if prefix == "-" {
-		err = configor.processTags(config)
-	}
-	err = configor.processTags(config, prefix)
 	return
 }
 

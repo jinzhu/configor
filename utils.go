@@ -293,3 +293,32 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 	}
 	return nil
 }
+
+func (configor *Configor) load(config interface{}, files ...string) (err error) {
+	defer func() {
+		if configor.Config.Debug || configor.Config.Verbose {
+			if err != nil {
+				fmt.Printf("Failed to load configuration from %v, got %v\n", files, err)
+			}
+
+			fmt.Printf("Configuration:\n  %#v\n", config)
+		}
+	}()
+
+	for _, file := range configor.getConfigurationFiles(files...) {
+		if configor.Config.Debug || configor.Config.Verbose {
+			fmt.Printf("Loading configurations from file '%v'...\n", file)
+		}
+		if err = processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
+			return err
+		}
+	}
+
+	if prefix := configor.getENVPrefix(config); prefix == "-" {
+		err = configor.processTags(config)
+	} else {
+		err = configor.processTags(config, prefix)
+	}
+
+	return err
+}

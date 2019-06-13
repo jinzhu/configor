@@ -64,6 +64,18 @@ configor.New(&configor.Config{Debug: true}).Load(&Config, "config.json")
 configor.New(&configor.Config{Verbose: true}).Load(&Config, "config.json")
 ```
 
+## Auto Reload Mode
+
+Configor can auto reload configuration based on time
+
+```go
+// auto reload configuration every second
+configor.New(&configor.Config{AutoReload: true}).Load(&Config, "config.json")
+
+// auto reload configuration every minute
+configor.New(&configor.Config{AutoReload: true, AutoReloadInterval: time.Minute}).Load(&Config, "config.json")
+```
+
 # Advanced Usage
 
 * Load mutiple configurations
