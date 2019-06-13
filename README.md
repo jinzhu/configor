@@ -76,6 +76,14 @@ configor.New(&configor.Config{AutoReload: true}).Load(&Config, "config.json")
 configor.New(&configor.Config{AutoReload: true, AutoReloadInterval: time.Minute}).Load(&Config, "config.json")
 ```
 
+Auto Reload Callback
+
+```go
+configor.New(&configor.Config{AutoReload: true, AutoReloadCallback: func(config interface{}) {
+    fmt.Printf("%v changed", config)
+}}).Load(&Config, "config.json")
+```
+
 # Advanced Usage
 
 * Load mutiple configurations

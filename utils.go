@@ -10,6 +10,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v2"
@@ -37,7 +38,7 @@ func (configor *Configor) getENVPrefix(config interface{}) string {
 	return configor.Config.ENVPrefix
 }
 
-func getConfigurationFileWithENVPrefix(file, env string) (string, error) {
+func getConfigurationFileWithENVPrefix(file, env string) (string, time.Time, error) {
 	var (
 		envFile string
 		extname = path.Ext(file)
@@ -50,13 +51,14 @@ func getConfigurationFileWithENVPrefix(file, env string) (string, error) {
 	}
 
 	if fileInfo, err := os.Stat(envFile); err == nil && fileInfo.Mode().IsRegular() {
-		return envFile, nil
+		return envFile, fileInfo.ModTime(), nil
 	}
-	return "", fmt.Errorf("failed to find file %v", file)
+	return "", time.Now(), fmt.Errorf("failed to find file %v", file)
 }
 
-func (configor *Configor) getConfigurationFiles(files ...string) []string {
-	var results []string
+func (configor *Configor) getConfigurationFiles(files ...string) ([]string, map[string]time.Time) {
+	var resultKeys []string
+	var results = map[string]time.Time{}
 
 	if configor.Config.Debug || configor.Config.Verbose {
 		fmt.Printf("Current environment: '%v'\n", configor.GetEnvironment())
@@ -69,28 +71,31 @@ func (configor *Configor) getConfigurationFiles(files ...string) []string {
 		// check configuration
 		if fileInfo, err := os.Stat(file); err == nil && fileInfo.Mode().IsRegular() {
 			foundFile = true
-			results = append(results, file)
+			resultKeys = append(resultKeys, file)
+			results[file] = fileInfo.ModTime()
 		}
 
 		// check configuration with env
-		if file, err := getConfigurationFileWithENVPrefix(file, configor.GetEnvironment()); err == nil {
+		if file, modTime, err := getConfigurationFileWithENVPrefix(file, configor.GetEnvironment()); err == nil {
 			foundFile = true
-			results = append(results, file)
+			resultKeys = append(resultKeys, file)
+			results[file] = modTime
 		}
 
 		// check example configuration
 		if !foundFile {
-			if example, err := getConfigurationFileWithENVPrefix(file, "example"); err == nil {
+			if example, modTime, err := getConfigurationFileWithENVPrefix(file, "example"); err == nil {
 				if !configor.Silent {
 					fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
 				}
-				results = append(results, example)
+				resultKeys = append(resultKeys, file)
+				results[example] = modTime
 			} else if !configor.Silent {
 				fmt.Printf("Failed to find configuration %v\n", file)
 			}
 		}
 	}
-	return results
+	return resultKeys, results
 }
 
 func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) error {
@@ -294,7 +299,7 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 	return nil
 }
 
-func (configor *Configor) load(config interface{}, files ...string) (err error) {
+func (configor *Configor) load(config interface{}, watchMode bool, files ...string) (err error, changed bool) {
 	defer func() {
 		if configor.Config.Debug || configor.Config.Verbose {
 			if err != nil {
@@ -305,14 +310,32 @@ func (configor *Configor) load(config interface{}, files ...string) (err error) 
 		}
 	}()
 
-	for _, file := range configor.getConfigurationFiles(files...) {
+	configFiles, configModTimeMap := configor.getConfigurationFiles(files...)
+
+	if watchMode {
+		if len(configModTimeMap) == len(configor.configModTimes) {
+			var changed bool
+			for f, t := range configModTimeMap {
+				if v, ok := configor.configModTimes[f]; !ok || t.After(v) {
+					changed = true
+				}
+			}
+
+			if !changed {
+				return nil, false
+			}
+		}
+	}
+
+	for _, file := range configFiles {
 		if configor.Config.Debug || configor.Config.Verbose {
 			fmt.Printf("Loading configurations from file '%v'...\n", file)
 		}
 		if err = processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
-			return err
+			return err, true
 		}
 	}
+	configor.configModTimes = configModTimeMap
 
 	if prefix := configor.getENVPrefix(config); prefix == "-" {
 		err = configor.processTags(config)
@@ -320,5 +343,5 @@ func (configor *Configor) load(config interface{}, files ...string) (err error) 
 		err = configor.processTags(config, prefix)
 	}
 
-	return err
+	return err, true
 }

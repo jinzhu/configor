@@ -10,6 +10,7 @@ import (
 
 type Configor struct {
 	*Config
+	configModTimes map[string]time.Time
 }
 
 type Config struct {
@@ -20,6 +21,7 @@ type Config struct {
 	Silent             bool
 	AutoReload         bool
 	AutoReloadInterval time.Duration
+	AutoReloadCallback func(config interface{})
 
 	// In case of json files, this field will be used only when compiled with
 	// go 1.10 or later.
@@ -83,7 +85,7 @@ func (configor *Configor) Load(config interface{}, files ...string) (err error) 
 	if !defaultValue.CanAddr() {
 		return fmt.Errorf("Config %v should be addressable", config)
 	}
-	err = configor.load(config, files...)
+	err, _ = configor.load(config, false, files...)
 
 	if configor.Config.AutoReload {
 		go func() {
@@ -92,9 +94,13 @@ func (configor *Configor) Load(config interface{}, files ...string) (err error) 
 				reflectPtr := reflect.New(reflect.ValueOf(config).Elem().Type())
 				reflectPtr.Elem().Set(defaultValue)
 
-				if err = configor.load(reflectPtr.Interface(), files...); err == nil {
+				var changed bool
+				if err, changed = configor.load(reflectPtr.Interface(), true, files...); err == nil && changed {
 					reflect.ValueOf(config).Elem().Set(reflectPtr.Elem())
-				} else {
+					if configor.Config.AutoReloadCallback != nil {
+						configor.Config.AutoReloadCallback(config)
+					}
+				} else if err != nil {
 					fmt.Printf("Failed to reload configuration from %v, got error %v\n", files, err)
 				}
 				timer.Reset(configor.Config.AutoReloadInterval)
