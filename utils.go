@@ -88,7 +88,7 @@ func (configor *Configor) getConfigurationFiles(files ...string) ([]string, map[
 				if !configor.Silent {
 					fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
 				}
-				resultKeys = append(resultKeys, file)
+				resultKeys = append(resultKeys, example)
 				results[example] = modTime
 			} else if !configor.Silent {
 				fmt.Printf("Failed to find configuration %v\n", file)
