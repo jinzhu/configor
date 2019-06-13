@@ -1,7 +1,9 @@
 package configor
 
 import (
+	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 	"time"
 )
@@ -77,13 +79,24 @@ func (configor *Configor) GetErrorOnUnmatchedKeys() bool {
 
 // Load will unmarshal configurations to struct from files that you provide
 func (configor *Configor) Load(config interface{}, files ...string) (err error) {
+	defaultValue := reflect.Indirect(reflect.ValueOf(config))
+	if !defaultValue.CanAddr() {
+		return fmt.Errorf("Config %v should be addressable", config)
+	}
 	err = configor.load(config, files...)
 
-	if err == nil && configor.Config.AutoReload {
+	if configor.Config.AutoReload {
 		go func() {
 			timer := time.NewTimer(configor.Config.AutoReloadInterval)
 			for range timer.C {
-				configor.load(config, files...)
+				reflectPtr := reflect.New(reflect.ValueOf(config).Elem().Type())
+				reflectPtr.Elem().Set(defaultValue)
+
+				if err = configor.load(reflectPtr.Interface(), files...); err == nil {
+					reflect.ValueOf(config).Elem().Set(reflectPtr.Elem())
+				} else {
+					fmt.Printf("Failed to reload configuration from %v, got error %v\n", files, err)
+				}
 				timer.Reset(configor.Config.AutoReloadInterval)
 			}
 		}()
