@@ -56,11 +56,11 @@ func getConfigurationFileWithENVPrefix(file, env string) (string, time.Time, err
 	return "", time.Now(), fmt.Errorf("failed to find file %v", file)
 }
 
-func (configor *Configor) getConfigurationFiles(files ...string) ([]string, map[string]time.Time) {
+func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string) ([]string, map[string]time.Time) {
 	var resultKeys []string
 	var results = map[string]time.Time{}
 
-	if configor.Config.Debug || configor.Config.Verbose {
+	if !watchMode && (configor.Config.Debug || configor.Config.Verbose) {
 		fmt.Printf("Current environment: '%v'\n", configor.GetEnvironment())
 	}
 
@@ -85,7 +85,7 @@ func (configor *Configor) getConfigurationFiles(files ...string) ([]string, map[
 		// check example configuration
 		if !foundFile {
 			if example, modTime, err := getConfigurationFileWithENVPrefix(file, "example"); err == nil {
-				if !configor.Silent {
+				if !watchMode && !configor.Silent {
 					fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
 				}
 				resultKeys = append(resultKeys, example)
@@ -310,7 +310,7 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		}
 	}()
 
-	configFiles, configModTimeMap := configor.getConfigurationFiles(files...)
+	configFiles, configModTimeMap := configor.getConfigurationFiles(watchMode, files...)
 
 	if watchMode {
 		if len(configModTimeMap) == len(configor.configModTimes) {
