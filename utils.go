@@ -115,7 +115,6 @@ func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) err
 	case strings.HasSuffix(file, ".json"):
 		return unmarshalJSON(data, config, errorOnUnmatchedKeys)
 	default:
-
 		if err := unmarshalToml(data, config, errorOnUnmatchedKeys); err == nil {
 			return nil
 		} else if errUnmatchedKeys, ok := err.(*UnmatchedTomlKeysError); ok {
@@ -188,6 +187,35 @@ func getPrefixForStruct(prefixes []string, fieldStruct *reflect.StructField) []s
 	return append(prefixes, fieldStruct.Name)
 }
 
+func (configor *Configor) processDefault(config interface{}) error {
+	configValue := reflect.Indirect(reflect.ValueOf(config))
+	if configValue.Kind() != reflect.Struct {
+		return errors.New("invalid config, should be struct")
+	}
+
+	configType := configValue.Type()
+	for i := 0; i < configType.NumField(); i++ {
+		var (
+			fieldStruct = configType.Field(i)
+			field       = configValue.Field(i)
+		)
+
+		if !field.CanAddr() || !field.CanInterface() {
+			continue
+		}
+
+		if isBlank := reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()); isBlank {
+			// Set default configuration if blank
+			if value := fieldStruct.Tag.Get("default"); value != "" {
+				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (configor *Configor) processTags(config interface{}, prefixes ...string) error {
 	configValue := reflect.Indirect(reflect.ValueOf(config))
 	if configValue.Kind() != reflect.Struct {
@@ -244,13 +272,14 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 			}
 		}
 
-		if isBlank := reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()); isBlank {
+		// is blank and required
+		if isBlank := reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface()); isBlank && fieldStruct.Tag.Get("required") == "true" {
 			// Set default configuration if blank
 			if value := fieldStruct.Tag.Get("default"); value != "" {
 				if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
 					return err
 				}
-			} else if fieldStruct.Tag.Get("required") == "true" {
+			} else {
 				// return error if it is required but blank
 				return errors.New(fieldStruct.Name + " is required, but blank")
 			}
@@ -267,8 +296,7 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 		}
 
 		if field.Kind() == reflect.Slice {
-			arrLen := field.Len()
-			if arrLen > 0 {
+			if arrLen := field.Len(); arrLen > 0 {
 				for i := 0; i < arrLen; i++ {
 					if reflect.Indirect(field.Index(i)).Kind() == reflect.Struct {
 						if err := configor.processTags(field.Index(i).Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(i))...); err != nil {
@@ -278,8 +306,7 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 				}
 			} else {
 				// load slice from env
-				newVal := reflect.New(field.Type().Elem()).Elem()
-				if newVal.Kind() == reflect.Struct {
+				if newVal := reflect.New(field.Type().Elem()).Elem(); newVal.Kind() == reflect.Struct {
 					idx := 0
 					for {
 						newVal = reflect.New(field.Type().Elem()).Elem()
@@ -288,6 +315,11 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 						} else if reflect.DeepEqual(newVal.Interface(), reflect.New(field.Type().Elem()).Elem().Interface()) {
 							break
 						} else {
+							// define a new value, assign default values, load value from env
+							newVal = reflect.New(field.Type().Elem()).Elem()
+							configor.processDefault(newVal.Addr().Interface())
+							configor.processTags(newVal.Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(idx))...)
+
 							idx++
 							field.Set(reflect.Append(field, newVal))
 						}
@@ -327,20 +359,23 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		}
 	}
 
-	for _, file := range configFiles {
-		if configor.Config.Debug || configor.Config.Verbose {
-			fmt.Printf("Loading configurations from file '%v'...\n", file)
+	err = configor.processDefault(config)
+	if err == nil {
+		for _, file := range configFiles {
+			if configor.Config.Debug || configor.Config.Verbose {
+				fmt.Printf("Loading configurations from file '%v'...\n", file)
+			}
+			if err = processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
+				return err, true
+			}
 		}
-		if err = processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
-			return err, true
-		}
-	}
-	configor.configModTimes = configModTimeMap
+		configor.configModTimes = configModTimeMap
 
-	if prefix := configor.getENVPrefix(config); prefix == "-" {
-		err = configor.processTags(config)
-	} else {
-		err = configor.processTags(config, prefix)
+		if prefix := configor.getENVPrefix(config); prefix == "-" {
+			err = configor.processTags(config)
+		} else {
+			err = configor.processTags(config, prefix)
+		}
 	}
 
 	return err, true

@@ -17,14 +17,14 @@ type Anonymous struct {
 }
 
 type testConfig struct {
-	APPName string `default:"configor"`
+	APPName string `default:"configor" json:",omitempty"`
 	Hosts   []string
 
 	DB struct {
 		Name     string
 		User     string `default:"root"`
 		Password string `required:"true" env:"DBPassword"`
-		Port     uint   `default:"3306"`
+		Port     uint   `default:"3306" json:",omitempty"`
 	}
 
 	Contacts []struct {
@@ -33,6 +33,7 @@ type testConfig struct {
 	}
 
 	Anonymous `anonymous:"true"`
+	Required  bool `default:"true"`
 
 	private string
 }
@@ -45,7 +46,7 @@ func generateDefaultConfig() testConfig {
 			Name     string
 			User     string `default:"root"`
 			Password string `required:"true" env:"DBPassword"`
-			Port     uint   `default:"3306"`
+			Port     uint   `default:"3306" json:",omitempty"`
 		}{
 			Name:     "configor",
 			User:     "configor",
