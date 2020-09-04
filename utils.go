@@ -190,7 +190,11 @@ func getPrefixForStruct(prefixes []string, fieldStruct *reflect.StructField) []s
 func (configor *Configor) processDefaults(config interface{}) error {
 	configValue := reflect.Indirect(reflect.ValueOf(config))
 	if configValue.Kind() != reflect.Struct {
-		return errors.New("invalid config, should be struct")
+		if configValue.Kind() == reflect.Ptr && configValue.Elem().Kind() == reflect.Struct {
+			configValue = configValue.Elem()
+		} else {
+			return errors.New("invalid config, should be struct")
+		}
 	}
 
 	configType := configValue.Type()
@@ -239,7 +243,11 @@ func (configor *Configor) processDefaults(config interface{}) error {
 func (configor *Configor) processTags(config interface{}, prefixes ...string) error {
 	configValue := reflect.Indirect(reflect.ValueOf(config))
 	if configValue.Kind() != reflect.Struct {
-		return errors.New("invalid config, should be struct")
+		if configValue.Kind() == reflect.Ptr && configValue.Elem().Kind() == reflect.Struct {
+			configValue = configValue.Elem()
+		} else {
+			return errors.New("invalid config, should be struct")
+		}
 	}
 
 	configType := configValue.Type()
