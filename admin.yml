@@ -1,0 +1,18 @@
+top:
+  - name: Permission
+    key: author_manage
+    icon:
+    children:
+      - name: My Permission
+        key: my_author
+        icon:
+        children:
+          - name: Apply
+            key: author_apply
+            icon:
+          - name: My Applies
+            key: author_apply_record
+            icon:
+          - name: My Permission
+            key: my_author
+            icon:

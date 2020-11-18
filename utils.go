@@ -317,22 +317,26 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 					}
 				}
 			} else {
-				// load slice from env
-				newVal := reflect.New(field.Type().Elem()).Elem()
-				if newVal.Kind() == reflect.Struct {
-					idx := 0
-					for {
-						newVal = reflect.New(field.Type().Elem()).Elem()
-						if err := configor.processTags(newVal.Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(idx))...); err != nil {
-							return err
-						} else if reflect.DeepEqual(newVal.Interface(), reflect.New(field.Type().Elem()).Elem().Interface()) {
-							break
-						} else {
-							idx++
-							field.Set(reflect.Append(field, newVal))
+				defer func(field reflect.Value, fieldStruct reflect.StructField) {
+					if !configValue.IsZero() {
+						// load slice from env
+						newVal := reflect.New(field.Type().Elem()).Elem()
+						if newVal.Kind() == reflect.Struct {
+							idx := 0
+							for {
+								newVal = reflect.New(field.Type().Elem()).Elem()
+								if err := configor.processTags(newVal.Addr().Interface(), append(getPrefixForStruct(prefixes, &fieldStruct), fmt.Sprint(idx))...); err != nil {
+									return // err
+								} else if reflect.DeepEqual(newVal.Interface(), reflect.New(field.Type().Elem()).Elem().Interface()) {
+									break
+								} else {
+									idx++
+									field.Set(reflect.Append(field, newVal))
+								}
+							}
 						}
 					}
-				}
+				}(field, fieldStruct)
 			}
 		}
 	}

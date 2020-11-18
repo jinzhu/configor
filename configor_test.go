@@ -665,3 +665,19 @@ func TestConfigFromEnv(t *testing.T) {
 		t.Error("Failed to load number from env")
 	}
 }
+
+type Menu struct {
+	Key      string `json:"key" yaml:"key"`
+	Name     string `json:"name" yaml:"name"`
+	Icon     string `json:"icon" yaml:"icon"`
+	Children []Menu `json:"children" yaml:"children"`
+}
+
+type MenuList struct {
+	Top []Menu `json:"top"  yaml:"top"`
+}
+
+func TestLoadNestedConfig(t *testing.T) {
+	adminConfig := MenuList{}
+	New(&Config{Verbose: true}).Load(&adminConfig, "admin.yml")
+}
