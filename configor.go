@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
@@ -119,6 +120,27 @@ func (configor *Configor) Load(config interface{}, files ...string) (err error) 
 func Save(config interface{}, filename string) error {
 	var js []byte
 	var err error
+	var filePerm os.FileMode = 0664
+	var folderPerm os.FileMode = 0775
+
+	// get directory
+	path, err := filepath.Abs(filepath.Dir(filename))
+	if err != nil {
+		return err
+	}
+
+	// create it if not exists
+	err = os.MkdirAll(path, folderPerm)
+	if err != nil {
+		return err
+	}
+
+	// create the config file if doesnt exist already
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, filePerm)
+	if err != nil {
+		return err
+	}
+	file.Close()
 
 	switch {
 	case strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml"):
@@ -130,11 +152,10 @@ func Save(config interface{}, filename string) error {
 	}
 
 	if err != nil {
-		return nil
+		return err
 	}
 
-	err = ioutil.WriteFile(filename, js, 0600)
-	return err
+	return ioutil.WriteFile(filename, js, filePerm)
 }
 
 // ENV return environment
