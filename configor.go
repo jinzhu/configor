@@ -1,10 +1,16 @@
 package configor
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -108,6 +114,48 @@ func (configor *Configor) Load(config interface{}, files ...string) (err error) 
 		}()
 	}
 	return
+}
+
+// Save will save the configurations to a file name you provide
+func Save(config interface{}, filename string) error {
+	var js []byte
+	var err error
+	var filePerm os.FileMode = 0664
+	var folderPerm os.FileMode = 0775
+
+	// get directory
+	path, err := filepath.Abs(filepath.Dir(filename))
+	if err != nil {
+		return err
+	}
+
+	// create it if not exists
+	err = os.MkdirAll(path, folderPerm)
+	if err != nil {
+		return err
+	}
+
+	// create the config file if doesnt exist already
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, filePerm)
+	if err != nil {
+		return err
+	}
+	file.Close()
+
+	switch {
+	case strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml"):
+		js, err = yaml.Marshal(&config)
+	case strings.HasSuffix(filename, ".json"):
+		js, err = json.Marshal(&config)
+	default:
+		return errors.New("unknown file type")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filename, js, filePerm)
 }
 
 // ENV return environment
