@@ -681,3 +681,56 @@ func TestLoadNestedConfig(t *testing.T) {
 	adminConfig := MenuList{}
 	New(&Config{Verbose: true}).Load(&adminConfig, "admin.yml")
 }
+
+type SliceDefaultValueConfig struct {
+	Options []struct {
+		Name   string `yaml:"name" default:"xylonx" required:"true"`
+		Number int    `yaml:"number" default:"12" required:"true"`
+	} `yaml:"options"`
+}
+
+func TestSliceDefaultValue(t *testing.T) {
+	file, err := ioutil.TempFile("/tmp", "configor-test-default-value-for-slice")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	config := new(SliceDefaultValueConfig)
+	err = Load(config, file.Name())
+	if err != nil {
+		t.Logf("load config from yaml error: %v", err)
+	}
+
+	rightConfig := SliceDefaultValueConfig{
+		Options: []struct {
+			Name   string `yaml:"name" default:"xylonx" required:"true"`
+			Number int    `yaml:"number" default:"12" required:"true"`
+		}{
+			{
+				Name:   "alice",
+				Number: 1,
+			},
+			{
+				Name:   "bob",
+				Number: 12,
+			},
+			{
+				Name:   "xylonx",
+				Number: 3,
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(rightConfig, config) {
+		t.Logf("load value: \n%v\nbut the right value is \n%v", *config, rightConfig)
+		t.Failed()
+	}
+}
+
+var sliceDefaultValueConfig = `
+options:
+  - name: alice
+    number: 1
+  - name: bob
+  - number: 3
+`

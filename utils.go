@@ -371,9 +371,6 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		}
 	}
 
-	// process defaults
-	configor.processDefaults(config)
-
 	for _, file := range configFiles {
 		if configor.Config.Debug || configor.Config.Verbose {
 			fmt.Printf("Loading configurations from file '%v'...\n", file)
@@ -383,6 +380,9 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		}
 	}
 	configor.configModTimes = configModTimeMap
+
+	// process defaults
+	configor.processDefaults(config)
 
 	if prefix := configor.getENVPrefix(config); prefix == "-" {
 		err = configor.processTags(config)
