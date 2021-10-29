@@ -265,22 +265,32 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 	configType := configValue.Type()
 	for i := 0; i < configType.NumField(); i++ {
 		var (
-			envNames    []string
-			fieldStruct = configType.Field(i)
-			field       = configValue.Field(i)
-			envName     = fieldStruct.Tag.Get("env") // read configuration from shell env
+			envNames      []string
+			fieldStruct   = configType.Field(i)
+			field         = configValue.Field(i)
+			envName       = fieldStruct.Tag.Get("env")        // read configuration from shell env
+			envSuffixName = fieldStruct.Tag.Get("env-suffix") // read configuration from shell env
 		)
 
 		if !field.CanAddr() || !field.CanInterface() {
 			continue
 		}
 
-		if envName == "" {
-			envNames = append(envNames, strings.Join(append(prefixes, fieldStruct.Name), "_"))                  // Configor_DB_Name
-			envNames = append(envNames, strings.ToUpper(strings.Join(append(prefixes, fieldStruct.Name), "_"))) // CONFIGOR_DB_NAME
-		} else {
-			envNames = []string{envName}
+		if envName != "" {
+			envNames = append(envNames, envName)
 		}
+		if envSuffixName != "" {
+			envNames = append(
+				envNames,
+				strings.Join(append(prefixes, envSuffixName), "_"),                  // Configor_DB_Name
+				strings.ToUpper(strings.Join(append(prefixes, envSuffixName), "_")), // CONFIGOR_DB_NAME
+			)
+		}
+		envNames = append(
+			envNames,
+			strings.Join(append(prefixes, fieldStruct.Name), "_"),
+			strings.ToUpper(strings.Join(append(prefixes, fieldStruct.Name), "_")),
+		)
 
 		if configor.Config.Verbose {
 			fmt.Printf("Trying to load struct `%v`'s field `%v` from env %v\n", configType.Name(), fieldStruct.Name, strings.Join(envNames, ", "))

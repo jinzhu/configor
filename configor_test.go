@@ -22,7 +22,7 @@ type testConfig struct {
 	Hosts   []string
 
 	DB struct {
-		Name     string
+		Name     string `env-suffix:"NAME"`
 		User     string `default:"root"`
 		Password string `required:"true" env:"DBPassword"`
 		Port     uint   `default:"3306" json:",omitempty"`
@@ -44,7 +44,7 @@ func generateDefaultConfig() testConfig {
 		APPName: "configor",
 		Hosts:   []string{"http://example.org", "http://jinzhu.me"},
 		DB: struct {
-			Name     string
+			Name     string `env-suffix:"NAME"`
 			User     string `default:"root"`
 			Password string `required:"true" env:"DBPassword"`
 			Port     uint   `default:"3306" json:",omitempty"`
@@ -555,6 +555,28 @@ func TestReadFromEnvironmentWithSpecifiedEnvName(t *testing.T) {
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.DB.Password = "db_password"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
+		}
+	}
+}
+
+func TestReadFromEnvironmentWithSpecifiedEnvSuffixName(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			defer os.Remove(file.Name())
+			file.Write(bytes)
+			var result testConfig
+			os.Setenv("CONFIGOR_DB_NAME", "db_name_from_env")
+			defer os.Setenv("CONFIGOR_DB_NAME", "")
+			Load(&result, file.Name())
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.DB.Name = "db_name_from_env"
 			if !reflect.DeepEqual(result, defaultConfig) {
 				t.Errorf("result should equal to original configuration")
 			}
