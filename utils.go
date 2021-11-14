@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path"
 	"reflect"
@@ -38,7 +38,7 @@ func (configor *Configor) getENVPrefix(config interface{}) string {
 	return configor.Config.ENVPrefix
 }
 
-func getConfigurationFileWithENVPrefix(file, env string) (string, time.Time, error) {
+func getConfigurationFileWithENVPrefix(fsys fs.FS, file, env string) (string, time.Time, error) {
 	var (
 		envFile string
 		extname = path.Ext(file)
@@ -50,13 +50,13 @@ func getConfigurationFileWithENVPrefix(file, env string) (string, time.Time, err
 		envFile = fmt.Sprintf("%v.%v%v", strings.TrimSuffix(file, extname), env, extname)
 	}
 
-	if fileInfo, err := os.Stat(envFile); err == nil && fileInfo.Mode().IsRegular() {
+	if fileInfo, err := stat(fsys, envFile); err == nil && fileInfo.Mode().IsRegular() {
 		return envFile, fileInfo.ModTime(), nil
 	}
 	return "", time.Now(), fmt.Errorf("failed to find file %v", file)
 }
 
-func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string) ([]string, map[string]time.Time) {
+func (configor *Configor) getConfigurationFiles(watchMode bool, fsys fs.FS, files ...string) ([]string, map[string]time.Time) {
 	var resultKeys []string
 	var results = map[string]time.Time{}
 
@@ -69,14 +69,14 @@ func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string)
 		file := files[i]
 
 		// check configuration
-		if fileInfo, err := os.Stat(file); err == nil && fileInfo.Mode().IsRegular() {
+		if fileInfo, err := stat(fsys, file); err == nil && fileInfo.Mode().IsRegular() {
 			foundFile = true
 			resultKeys = append(resultKeys, file)
 			results[file] = fileInfo.ModTime()
 		}
 
 		// check configuration with env
-		if file, modTime, err := getConfigurationFileWithENVPrefix(file, configor.GetEnvironment()); err == nil {
+		if file, modTime, err := getConfigurationFileWithENVPrefix(fsys, file, configor.GetEnvironment()); err == nil {
 			foundFile = true
 			resultKeys = append(resultKeys, file)
 			results[file] = modTime
@@ -84,7 +84,7 @@ func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string)
 
 		// check example configuration
 		if !foundFile {
-			if example, modTime, err := getConfigurationFileWithENVPrefix(file, "example"); err == nil {
+			if example, modTime, err := getConfigurationFileWithENVPrefix(fsys, file, "example"); err == nil {
 				if !watchMode && !configor.Silent {
 					fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
 				}
@@ -98,12 +98,7 @@ func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string)
 	return resultKeys, results
 }
 
-func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) error {
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
+func processFile(config interface{}, file string, data []byte, errorOnUnmatchedKeys bool) error {
 	switch {
 	case strings.HasSuffix(file, ".yaml") || strings.HasSuffix(file, ".yml"):
 		if errorOnUnmatchedKeys {
@@ -343,7 +338,7 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 	return nil
 }
 
-func (configor *Configor) load(config interface{}, watchMode bool, files ...string) (err error, changed bool) {
+func (configor *Configor) load(config interface{}, watchMode bool, fsys fs.FS, files ...string) (changed bool, err error) {
 	defer func() {
 		if configor.Config.Debug || configor.Config.Verbose {
 			if err != nil {
@@ -354,7 +349,7 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		}
 	}()
 
-	configFiles, configModTimeMap := configor.getConfigurationFiles(watchMode, files...)
+	configFiles, configModTimeMap := configor.getConfigurationFiles(watchMode, fsys, files...)
 
 	if watchMode {
 		if len(configModTimeMap) == len(configor.configModTimes) {
@@ -366,7 +361,7 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 			}
 
 			if !changed {
-				return nil, false
+				return false, nil
 			}
 		}
 	}
@@ -378,8 +373,13 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		if configor.Config.Debug || configor.Config.Verbose {
 			fmt.Printf("Loading configurations from file '%v'...\n", file)
 		}
-		if err = processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
-			return err, true
+
+		data, err := readFile(fsys, file)
+		if err != nil {
+			return true, err
+		}
+		if err = processFile(config, file, data, configor.GetErrorOnUnmatchedKeys()); err != nil {
+			return true, err
 		}
 	}
 	configor.configModTimes = configModTimeMap
@@ -390,5 +390,21 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		err = configor.processTags(config, prefix)
 	}
 
-	return err, true
+	return true, err
+}
+
+func readFile(fsys fs.FS, file string) ([]byte, error) {
+	if fsys == nil {
+		return os.ReadFile(file)
+	}
+
+	return fs.ReadFile(fsys, file)
+}
+
+func stat(fsys fs.FS, file string) (fs.FileInfo, error) {
+	if fsys == nil {
+		return os.Stat(file)
+	}
+
+	return fs.Stat(fsys, file)
 }

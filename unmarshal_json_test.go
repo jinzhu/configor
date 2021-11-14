@@ -2,7 +2,6 @@ package configor_test
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -20,7 +19,7 @@ func TestUnmatchedKeyInJsonConfigFile(t *testing.T) {
 	}
 	config := configFile{Name: "test", Test: "ATest"}
 
-	file, err := ioutil.TempFile("/tmp", "configor")
+	file, err := os.CreateTemp("/tmp", "configor")
 	if err != nil {
 		t.Fatal("Could not create temp file")
 	}
