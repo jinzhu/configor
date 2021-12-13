@@ -418,18 +418,15 @@ func TestOverwritetestConfigurationWithEnvironmentWithDefaultPrefix(t *testing.T
 			os.Setenv("CONFIGOR_APPNAME", "config2")
 			os.Setenv("CONFIGOR_HOSTS", "- http://example.org\n- http://jinzhu.me")
 			os.Setenv("CONFIGOR_DB_NAME", "db_name")
-			os.Setenv("CONFIGOR_META_INFO", "env_meta_info")
 			defer os.Setenv("CONFIGOR_APPNAME", "")
 			defer os.Setenv("CONFIGOR_HOSTS", "")
 			defer os.Setenv("CONFIGOR_DB_NAME", "")
-			defer os.Setenv("CONFIGOR_META_INFO", "")
 			Load(&result, file.Name())
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.APPName = "config2"
 			defaultConfig.Hosts = []string{"http://example.org", "http://jinzhu.me"}
 			defaultConfig.DB.Name = "db_name"
-			defaultConfig.MetaInfo = "env_meta_info"
 			if !reflect.DeepEqual(result, defaultConfig) {
 				t.Errorf("result should equal to original configuration")
 			}
@@ -576,12 +573,12 @@ func TestReadFromEnvironmentWithSpecifiedEnvSuffixName(t *testing.T) {
 			defer os.Remove(file.Name())
 			file.Write(bytes)
 			var result testConfig
-			os.Setenv("CONFIGOR_DB_NAME", "db_name_from_env")
-			defer os.Setenv("CONFIGOR_DB_NAME", "")
+			os.Setenv("CONFIGOR_META_INFO", "env_meta_info")
+			defer os.Setenv("CONFIGOR_META_INFO", "")
 			Load(&result, file.Name())
 
 			var defaultConfig = generateDefaultConfig()
-			defaultConfig.DB.Name = "db_name_from_env"
+			defaultConfig.MetaInfo = "env_meta_info"
 			if !reflect.DeepEqual(result, defaultConfig) {
 				t.Errorf("result should equal to original configuration")
 			}
