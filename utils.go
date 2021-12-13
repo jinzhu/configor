@@ -269,7 +269,7 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 			fieldStruct   = configType.Field(i)
 			field         = configValue.Field(i)
 			envName       = fieldStruct.Tag.Get("env")        // read configuration from shell env
-			envSuffixName = fieldStruct.Tag.Get("env-suffix") // read configuration from shell env
+			envSuffixName = fieldStruct.Tag.Get("envSuffix") // read configuration from shell env
 		)
 
 		if !field.CanAddr() || !field.CanInterface() {
