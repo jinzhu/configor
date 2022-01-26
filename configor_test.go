@@ -681,3 +681,44 @@ func TestLoadNestedConfig(t *testing.T) {
 	adminConfig := MenuList{}
 	New(&Config{Verbose: true}).Load(&adminConfig, "admin.yml")
 }
+
+type Polymorphic interface {
+	TypeName() string
+}
+
+type A struct {
+	Type string `default:"a"`
+}
+
+func (a *A) TypeName() string {
+	return a.Type
+}
+
+type B struct {
+	Type string `default:"b"`
+}
+
+func (b *B) TypeName() string {
+	return b.Type
+}
+
+var _ Polymorphic = (*A)(nil)
+var _ Polymorphic = (*B)(nil)
+
+type PolymorphicConfig struct {
+	Polymorphic `anonymous:"true"`
+}
+
+func TestPolymorphicConfig(t *testing.T) {
+	loader := New(&Config{})
+	config := &PolymorphicConfig{&A{}}
+	loader.Load(config)
+	if config.TypeName() != "a" {
+		t.Errorf("Got wrong subtype configuration. Expected: a Got: %v", config.TypeName())
+	}
+	config = &PolymorphicConfig{&B{}}
+	loader.Load(config)
+	if config.TypeName() != "b" {
+		t.Errorf("Got wrong subtype configuration. Expected: b Got: %v", config.TypeName())
+	}
+}

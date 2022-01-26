@@ -213,8 +213,14 @@ func (configor *Configor) processDefaults(config interface{}) error {
 			}
 		}
 
-		for field.Kind() == reflect.Ptr {
+		switch field.Kind() {
+		case reflect.Ptr:
 			field = field.Elem()
+		case reflect.Interface:
+			field = field.Elem()
+			if field.Kind() == reflect.Ptr {
+				field = field.Elem()
+			}
 		}
 
 		switch field.Kind() {
@@ -297,8 +303,14 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 			return errors.New(fieldStruct.Name + " is required, but blank")
 		}
 
-		for field.Kind() == reflect.Ptr {
+		switch field.Kind() {
+		case reflect.Ptr:
 			field = field.Elem()
+		case reflect.Interface:
+			field = field.Elem()
+			if field.Kind() == reflect.Ptr {
+				field = field.Elem()
+			}
 		}
 
 		if field.Kind() == reflect.Struct {
