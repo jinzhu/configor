@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -271,6 +272,15 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 			if value := os.Getenv(env); value != "" {
 				if configor.Config.Debug || configor.Config.Verbose {
 					fmt.Printf("Loading configuration for struct `%v`'s field `%v` from env %v...\n", configType.Name(), fieldStruct.Name, env)
+				}
+
+				if configor.ParseDockerSecrets && strings.HasPrefix(value, configor.ParseDockerSecretsPrefix) && filepath.IsAbs(value) {
+					fileData, err := os.ReadFile(value)
+					if err != nil {
+						fmt.Println(err)
+						return err
+					}
+					value = string(fileData)
 				}
 
 				switch reflect.Indirect(field).Kind() {

@@ -666,6 +666,70 @@ func TestConfigFromEnv(t *testing.T) {
 	}
 }
 
+func TestDockerSecretsFromEnv(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			defer os.Remove(file.Name())
+			file.Write(bytes)
+
+			if fileSecret, err := ioutil.TempFile("/run/secrets", "configor"); err == nil {
+				defer fileSecret.Close()
+				defer os.Remove(fileSecret.Name())
+				fileSecret.Write([]byte("Line one\nLine two\nLine three\nAnd more lines"))
+				var result testConfig
+				os.Setenv("CONFIGOR_ENV_PREFIX", "CONFIGOR")
+				os.Setenv("CONFIGOR_DESCRIPTION", fileSecret.Name())
+				defer os.Setenv("CONFIGOR_ENV_PREFIX", "")
+				defer os.Setenv("CONFIGOR_DESCRIPTION", "")
+				New(&Config{ParseDockerSecrets: true}).Load(&result, file.Name())
+
+				var defaultConfig = generateDefaultConfig()
+				defaultConfig.Anonymous.Description = "Line one\nLine two\nLine three\nAnd more lines"
+				if !reflect.DeepEqual(result, defaultConfig) {
+					t.Errorf("result should equal to original configuration")
+				}
+			} else {
+				t.Errorf("Unable to perform test: %s", err.Error())
+			}
+		}
+	}
+}
+
+func TestDockerSecretsCustomPrefixFromEnv(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			defer os.Remove(file.Name())
+			file.Write(bytes)
+
+			if fileSecret, err := ioutil.TempFile("/run-secrets", "configor"); err == nil {
+				defer fileSecret.Close()
+				defer os.Remove(fileSecret.Name())
+				fileSecret.Write([]byte("Line one\nLine two\nLine three\nAnd more lines"))
+				var result testConfig
+				os.Setenv("CONFIGOR_ENV_PREFIX", "CONFIGOR")
+				os.Setenv("CONFIGOR_DESCRIPTION", fileSecret.Name())
+				defer os.Setenv("CONFIGOR_ENV_PREFIX", "")
+				defer os.Setenv("CONFIGOR_DESCRIPTION", "")
+				New(&Config{ParseDockerSecrets: true, ParseDockerSecretsPrefix: "/run-secrets"}).Load(&result, file.Name())
+
+				var defaultConfig = generateDefaultConfig()
+				defaultConfig.Anonymous.Description = "Line one\nLine two\nLine three\nAnd more lines"
+				if !reflect.DeepEqual(result, defaultConfig) {
+					t.Errorf("result should equal to original configuration")
+				}
+			} else {
+				t.Errorf("Unable to perform test: %s", err.Error())
+			}
+		}
+	}
+}
+
 type Menu struct {
 	Key      string `json:"key" yaml:"key"`
 	Name     string `json:"name" yaml:"name"`

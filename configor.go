@@ -14,14 +14,18 @@ type Configor struct {
 }
 
 type Config struct {
-	Environment        string
-	ENVPrefix          string
-	Debug              bool
-	Verbose            bool
-	Silent             bool
-	AutoReload         bool
-	AutoReloadInterval time.Duration
-	AutoReloadCallback func(config interface{})
+	Environment              string
+	ENVPrefix                string
+	Debug                    bool
+	Verbose                  bool
+	Silent                   bool
+	AutoReload               bool
+	AutoReloadInterval       time.Duration
+	AutoReloadCallback       func(config interface{})
+
+	// Works only for environment variables
+	ParseDockerSecrets       bool
+	ParseDockerSecretsPrefix string
 
 	// In case of json files, this field will be used only when compiled with
 	// go 1.10 or later.
@@ -49,6 +53,10 @@ func New(config *Config) *Configor {
 
 	if config.AutoReload && config.AutoReloadInterval == 0 {
 		config.AutoReloadInterval = time.Second
+	}
+
+	if config.ParseDockerSecrets && config.ParseDockerSecretsPrefix == "" {
+		config.ParseDockerSecretsPrefix = "/run/secrets/"
 	}
 
 	return &Configor{Config: config}

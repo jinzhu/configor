@@ -84,7 +84,23 @@ configor.New(&configor.Config{AutoReload: true, AutoReloadCallback: func(config 
 }}).Load(&Config, "config.json")
 ```
 
-# Advanced Usage
+## Docker secrets integration
+
+Configor can load files referred in configuration file, so it's ready for docker secrets.
+
+```go
+configor.New(&configor.Config{ParseDockerSecrets: true}).Load(&Config, "config.json")
+```
+
+```yml
+db:
+    name:     test
+    user:     test
+    password: /run/secrets/db_password
+    port:     1234
+```
+
+## Advanced Usage
 
 * Load mutiple configurations
 
