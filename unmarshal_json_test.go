@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jinzhu/configor"
+	"github.com/kubax2000/configor"
 )
 
 func TestUnmatchedKeyInJsonConfigFile(t *testing.T) {
