@@ -3,9 +3,13 @@ package configor
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
+	"sync"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 type Configor struct {
@@ -27,6 +31,8 @@ type Config struct {
 	// go 1.10 or later.
 	// This field will be ignored when compiled with go versions lower than 1.10.
 	ErrorOnUnmatchedKeys bool
+
+	OnConfigChange func(e fsnotify.Event)
 }
 
 // New initialize a Configor
@@ -118,4 +124,69 @@ func ENV() string {
 // Load will unmarshal configurations to struct from files that you provide
 func Load(config interface{}, files ...string) error {
 	return New(nil).Load(config, files...)
+}
+
+func Watch(config interface{}, files ...string) {
+	New(nil).Watch(config, files...)
+}
+
+func (configor *Configor) Watch(config interface{}, files ...string) {
+	initWG := sync.WaitGroup{}
+	initWG.Add(1)
+	for _, file := range files {
+
+		go func() {
+			watcher, err := newWatcher()
+			if err != nil {
+				fmt.Printf("Failed to create watcher for %v, got error %v\n", file, err)
+			}
+			defer watcher.Close()
+
+			configFile := filepath.Clean(file)
+			configDir, _ := filepath.Split(configFile)
+			realConfigFile, _ := filepath.EvalSymlinks(file)
+
+			eventsWG := sync.WaitGroup{}
+			eventsWG.Add(1)
+			go func() {
+				for {
+					select {
+					case event, ok := <-watcher.Events:
+						if !ok {
+							eventsWG.Done()
+							return
+						}
+
+						currentConfigFile, _ := filepath.EvalSymlinks(file)
+						const writeOrCreateMask = fsnotify.Write | fsnotify.Create
+						if (event.Op&writeOrCreateMask != 0 && currentConfigFile == event.Name) ||
+							(currentConfigFile != "" && currentConfigFile != realConfigFile) {
+							err := configor.Load(config, files...)
+							if err != nil {
+								fmt.Printf("Failed to reload configuration from %v, got error %v\n", files, err)
+							}
+							if configor.Config.OnConfigChange != nil {
+								configor.Config.OnConfigChange(event)
+							}
+						} else if filepath.Clean(event.Name) == configFile &&
+							event.Op&fsnotify.Remove&fsnotify.Remove != 0 {
+							eventsWG.Done()
+							return
+						}
+
+					case err, ok := <-watcher.Errors:
+						if ok {
+							fmt.Printf("Failed to watch configuration from %v, got error %v\n", files, err)
+						}
+						eventsWG.Done()
+						return
+					}
+				}
+			}()
+			watcher.Add(configDir)
+			initWG.Done()
+			eventsWG.Wait()
+		}()
+		initWG.Wait()
+	}
 }

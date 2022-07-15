@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v2"
@@ -680,4 +681,41 @@ type MenuList struct {
 func TestLoadNestedConfig(t *testing.T) {
 	adminConfig := MenuList{}
 	New(&Config{Verbose: true}).Load(&adminConfig, "admin.yml")
+}
+
+func TestWatchNormalConfig(t *testing.T) {
+	var result testConfig
+	config := generateDefaultConfig()
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			defer os.Remove(file.Name())
+			file.Write(bytes)
+
+			//Load(&result, file.Name())
+			Watch(&result, file.Name())
+
+			time.Sleep(time.Second)
+			if !reflect.DeepEqual(result, config) {
+				t.Errorf("result should equal to original configuration")
+			}
+
+			config.Hosts = []string{
+				"whocallthefleet.org",
+				"abandonship.org",
+			}
+			if bytes, err = json.Marshal(config); err != nil {
+				t.Errorf("Failed to marshal config")
+			}
+			file.Seek(0, 0)
+			file.Write(bytes)
+
+			time.Sleep(1 * time.Second)
+			if !reflect.DeepEqual(result, config) {
+				t.Errorf("watch test failed: result should equal to original configuration")
+			}
+		} else {
+			t.Errorf("Failed to marshal config")
+		}
+	}
 }
