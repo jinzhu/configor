@@ -2,7 +2,7 @@
 
 Golang Configuration tool that support YAML, JSON, TOML, Shell Environment (Supports Go 1.10+)
 
-[![wercker status](https://app.wercker.com/status/9ebd3684ff8998501af5aac38a79a380/s/master "wercker status")](https://app.wercker.com/project/byKey/9ebd3684ff8998501af5aac38a79a380)
+[![test status](https://github.com/jinzhu/configor/workflows/tests/badge.svg?branch=master "test status")](https://github.com/jinzhu/configor/actions)
 
 ## Usage
 

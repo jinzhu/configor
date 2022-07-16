@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path"
@@ -38,7 +39,13 @@ func (configor *Configor) getENVPrefix(config interface{}) string {
 	return configor.Config.ENVPrefix
 }
 
-func getConfigurationFileWithENVPrefix(file, env string) (string, time.Time, error) {
+func (c *Configor) getConfigurationFileWithENVPrefix(file, env string) (string, time.Time, error) {
+	stat := os.Stat
+	if c.FS != nil {
+		stat = func(name string) (os.FileInfo, error) {
+			return fs.Stat(c.FS, name)
+		}
+	}
 	var (
 		envFile string
 		extname = path.Ext(file)
@@ -50,13 +57,20 @@ func getConfigurationFileWithENVPrefix(file, env string) (string, time.Time, err
 		envFile = fmt.Sprintf("%v.%v%v", strings.TrimSuffix(file, extname), env, extname)
 	}
 
-	if fileInfo, err := os.Stat(envFile); err == nil && fileInfo.Mode().IsRegular() {
+	if fileInfo, err := stat(envFile); err == nil && fileInfo.Mode().IsRegular() {
 		return envFile, fileInfo.ModTime(), nil
 	}
 	return "", time.Now(), fmt.Errorf("failed to find file %v", file)
 }
 
-func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string) ([]string, map[string]time.Time) {
+func (configor *Configor) getConfigurationFiles(config *Config, watchMode bool, files ...string) ([]string, map[string]time.Time) {
+	stat := os.Stat
+	if config.FS != nil {
+		stat = func(name string) (os.FileInfo, error) {
+			return fs.Stat(config.FS, name)
+		}
+	}
+
 	var resultKeys []string
 	var results = map[string]time.Time{}
 
@@ -69,14 +83,14 @@ func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string)
 		file := files[i]
 
 		// check configuration
-		if fileInfo, err := os.Stat(file); err == nil && fileInfo.Mode().IsRegular() {
+		if fileInfo, err := stat(file); err == nil && fileInfo.Mode().IsRegular() {
 			foundFile = true
 			resultKeys = append(resultKeys, file)
 			results[file] = fileInfo.ModTime()
 		}
 
 		// check configuration with env
-		if file, modTime, err := getConfigurationFileWithENVPrefix(file, configor.GetEnvironment()); err == nil {
+		if file, modTime, err := configor.getConfigurationFileWithENVPrefix(file, configor.GetEnvironment()); err == nil {
 			foundFile = true
 			resultKeys = append(resultKeys, file)
 			results[file] = modTime
@@ -84,7 +98,7 @@ func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string)
 
 		// check example configuration
 		if !foundFile {
-			if example, modTime, err := getConfigurationFileWithENVPrefix(file, "example"); err == nil {
+			if example, modTime, err := configor.getConfigurationFileWithENVPrefix(file, "example"); err == nil {
 				if !watchMode && !configor.Silent {
 					fmt.Printf("Failed to find configuration %v, using example file %v\n", file, example)
 				}
@@ -98,8 +112,14 @@ func (configor *Configor) getConfigurationFiles(watchMode bool, files ...string)
 	return resultKeys, results
 }
 
-func processFile(config interface{}, file string, errorOnUnmatchedKeys bool) error {
-	data, err := ioutil.ReadFile(file)
+func (c *Configor) processFile(config interface{}, file string, errorOnUnmatchedKeys bool) error {
+	readFile := ioutil.ReadFile
+	if c.FS != nil {
+		readFile = func(filename string) ([]byte, error) {
+			return fs.ReadFile(c.FS, filename)
+		}
+	}
+	data, err := readFile(file)
 	if err != nil {
 		return err
 	}
@@ -354,7 +374,7 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		}
 	}()
 
-	configFiles, configModTimeMap := configor.getConfigurationFiles(watchMode, files...)
+	configFiles, configModTimeMap := configor.getConfigurationFiles(configor.Config, watchMode, files...)
 
 	if watchMode {
 		if len(configModTimeMap) == len(configor.configModTimes) {
@@ -378,7 +398,7 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 		if configor.Config.Debug || configor.Config.Verbose {
 			fmt.Printf("Loading configurations from file '%v'...\n", file)
 		}
-		if err = processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
+		if err = configor.processFile(config, file, configor.GetErrorOnUnmatchedKeys()); err != nil {
 			return err, true
 		}
 	}
