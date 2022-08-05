@@ -2,6 +2,7 @@ package configor
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -720,5 +721,17 @@ func TestPolymorphicConfig(t *testing.T) {
 	loader.Load(config)
 	if config.TypeName() != "b" {
 		t.Errorf("Got wrong subtype configuration. Expected: b Got: %v", config.TypeName())
+
+//go:embed test/*
+var test embed.FS
+
+func TestLoad_FS(t *testing.T) {
+	type testEmbedConfig struct {
+		Foo string
+	}
+	var result testEmbedConfig
+	_ = New(&Config{FS: test}).Load(&result, "test/config.yaml")
+	if result.Foo != "bar" {
+		t.Error("expected to have foo: bar in config")
 	}
 }

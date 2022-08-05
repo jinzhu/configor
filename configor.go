@@ -2,6 +2,7 @@ package configor
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"reflect"
 	"regexp"
@@ -27,6 +28,9 @@ type Config struct {
 	// go 1.10 or later.
 	// This field will be ignored when compiled with go versions lower than 1.10.
 	ErrorOnUnmatchedKeys bool
+
+	// You can use embed.FS or any other fs.FS to load configs from. Default - use "os" package
+	FS fs.FS
 }
 
 // New initialize a Configor
