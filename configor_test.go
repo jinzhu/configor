@@ -721,6 +721,7 @@ func TestPolymorphicConfig(t *testing.T) {
 	loader.Load(config)
 	if config.TypeName() != "b" {
 		t.Errorf("Got wrong subtype configuration. Expected: b Got: %v", config.TypeName())
+}
 
 //go:embed test/*
 var test embed.FS
