@@ -18,20 +18,21 @@ type Anonymous struct {
 }
 
 type testConfig struct {
-	APPName string `default:"configor" json:",omitempty"`
+	APPName string `default:"configor" json:"-"`
 	Hosts   []string
 
 	DB struct {
 		Name     string
 		User     string `default:"root"`
 		Password string `required:"true" env:"DBPassword"`
-		Port     uint   `default:"3306" json:",omitempty"`
-		SSL      bool   `default:"true" json:",omitempty"`
+		Port     uint   `default:"3306" json:"-"`
+		SSL      bool   `default:"true" json:"-"`
 	}
 
 	Contacts []struct {
-		Name  string
-		Email string `required:"true"`
+		Name   string
+		Email  string `required:"true"`
+		Active bool   `default:"true" json:"-"`
 	}
 
 	Anonymous `anonymous:"true"`
@@ -47,8 +48,8 @@ func generateDefaultConfig() testConfig {
 			Name     string
 			User     string `default:"root"`
 			Password string `required:"true" env:"DBPassword"`
-			Port     uint   `default:"3306" json:",omitempty"`
-			SSL      bool   `default:"true" json:",omitempty"`
+			Port     uint   `default:"3306" json:"-"`
+			SSL      bool   `default:"true" json:"-"`
 		}{
 			Name:     "configor",
 			User:     "configor",
@@ -57,12 +58,14 @@ func generateDefaultConfig() testConfig {
 			SSL:      true,
 		},
 		Contacts: []struct {
-			Name  string
-			Email string `required:"true"`
+			Name   string
+			Email  string `required:"true"`
+			Active bool   `default:"true" json:"-"`
 		}{
 			{
-				Name:  "Jinzhu",
-				Email: "wosmvp@gmail.com",
+				Name:   "Jinzhu",
+				Email:  "wosmvp@gmail.com",
+				Active: true,
 			},
 		},
 		Anonymous: Anonymous{
