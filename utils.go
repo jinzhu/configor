@@ -307,7 +307,11 @@ func (configor *Configor) processTags(config interface{}, prefixes ...string) er
 						field.Set(reflect.ValueOf(true))
 					}
 				case reflect.String:
-					field.Set(reflect.ValueOf(value))
+					if field.Type() == reflect.TypeOf(value) {
+						field.Set(reflect.ValueOf(value))
+						break
+					}
+					fallthrough
 				default:
 					if err := yaml.Unmarshal([]byte(value), field.Addr().Interface()); err != nil {
 						return err

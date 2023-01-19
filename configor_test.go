@@ -696,3 +696,24 @@ func TestLoad_FS(t *testing.T) {
 		t.Error("expected to have foo: bar in config")
 	}
 }
+
+func TestLoadConfigFromEnvWithFieldInnerTypeStringButRealTypeSomethingElse(t *testing.T) {
+	type myStringType string
+	type myTestConfig struct {
+		Name myStringType
+	}
+	var result myTestConfig
+	key := "MYTEST_NAME"
+	expected := "bob"
+	err := os.Setenv(key, expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Unsetenv(key)
+	New(&Config{
+		ENVPrefix: "MYTEST",
+	}).Load(&result)
+	if string(result.Name) != expected {
+		t.Errorf("expected '%s' got '%s'", expected, result.Name)
+	}
+}
