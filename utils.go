@@ -1,6 +1,7 @@
 package configor
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // UnmatchedTomlKeysError errors are returned by the Load function when
@@ -127,7 +128,9 @@ func (c *Configor) processFile(config interface{}, file string, errorOnUnmatched
 	switch {
 	case strings.HasSuffix(file, ".yaml") || strings.HasSuffix(file, ".yml"):
 		if errorOnUnmatchedKeys {
-			return yaml.UnmarshalStrict(data, config)
+			decoder := yaml.NewDecoder(bytes.NewBuffer(data))
+			decoder.KnownFields(true)
+			return decoder.Decode(config)
 		}
 		return yaml.Unmarshal(data, config)
 	case strings.HasSuffix(file, ".toml"):
@@ -149,7 +152,9 @@ func (c *Configor) processFile(config interface{}, file string, errorOnUnmatched
 
 		var yamlError error
 		if errorOnUnmatchedKeys {
-			yamlError = yaml.UnmarshalStrict(data, config)
+			decoder := yaml.NewDecoder(bytes.NewBuffer(data))
+			decoder.KnownFields(true)
+			yamlError = decoder.Decode(config)
 		} else {
 			yamlError = yaml.Unmarshal(data, config)
 		}
