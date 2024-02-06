@@ -397,7 +397,10 @@ func (configor *Configor) load(config interface{}, watchMode bool, files ...stri
 	}
 
 	// process defaults
-	configor.processDefaults(config)
+	err = configor.processDefaults(config)
+	if err != nil {
+		return err, true
+	}
 
 	for _, file := range configFiles {
 		if configor.Config.Debug || configor.Config.Verbose {
