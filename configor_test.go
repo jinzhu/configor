@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v3"
@@ -22,11 +23,12 @@ type testConfig struct {
 	Hosts   []string
 
 	DB struct {
-		Name     string
-		User     string `default:"root"`
-		Password string `required:"true" env:"DBPassword"`
-		Port     uint   `default:"3306" json:",omitempty"`
-		SSL      bool   `default:"true" json:",omitempty"`
+		Name        string
+		User        string        `default:"root"`
+		Password    string        `required:"true" env:"DBPassword"`
+		Port        uint          `default:"3306" json:",omitempty"`
+		SSL         bool          `default:"true" json:",omitempty"`
+		ReadTimeout time.Duration `default:"60s" json:",omitempty"`
 	}
 
 	Contacts []struct {
@@ -44,17 +46,19 @@ func generateDefaultConfig() testConfig {
 		APPName: "configor",
 		Hosts:   []string{"http://example.org", "http://jinzhu.me"},
 		DB: struct {
-			Name     string
-			User     string `default:"root"`
-			Password string `required:"true" env:"DBPassword"`
-			Port     uint   `default:"3306" json:",omitempty"`
-			SSL      bool   `default:"true" json:",omitempty"`
+			Name        string
+			User        string        `default:"root"`
+			Password    string        `required:"true" env:"DBPassword"`
+			Port        uint          `default:"3306" json:",omitempty"`
+			SSL         bool          `default:"true" json:",omitempty"`
+			ReadTimeout time.Duration `default:"60s" json:",omitempty"`
 		}{
-			Name:     "configor",
-			User:     "configor",
-			Password: "configor",
-			Port:     3306,
-			SSL:      true,
+			Name:        "configor",
+			User:        "configor",
+			Password:    "configor",
+			Port:        3306,
+			SSL:         true,
+			ReadTimeout: 60 * time.Second,
 		},
 		Contacts: []struct {
 			Name  string
@@ -388,7 +392,7 @@ func TestLoadtestConfigurationByEnvironmentSetBytestConfig(t *testing.T) {
 
 		var result testConfig
 		var Configor = New(&Config{Environment: "production"})
-		if Configor.Load(&result, file.Name()+".yaml"); err != nil {
+		if err := Configor.Load(&result, file.Name()+".yaml"); err != nil {
 			t.Errorf("No error should happen when load configurations, but got %v", err)
 		}
 
