@@ -33,6 +33,7 @@ type testConfig struct {
 		Name  string
 		Email string `required:"true"`
 	}
+	MetaInfo string `envSuffix:"META_INFO"`
 
 	Anonymous `anonymous:"true"`
 
@@ -65,6 +66,7 @@ func generateDefaultConfig() testConfig {
 				Email: "wosmvp@gmail.com",
 			},
 		},
+		MetaInfo: "defaultMetaInfo",
 		Anonymous: Anonymous{
 			Description: "This is an anonymous embedded struct whose environment variables should NOT include 'ANONYMOUS'",
 		},
@@ -555,6 +557,28 @@ func TestReadFromEnvironmentWithSpecifiedEnvName(t *testing.T) {
 
 			var defaultConfig = generateDefaultConfig()
 			defaultConfig.DB.Password = "db_password"
+			if !reflect.DeepEqual(result, defaultConfig) {
+				t.Errorf("result should equal to original configuration")
+			}
+		}
+	}
+}
+
+func TestReadFromEnvironmentWithSpecifiedEnvSuffixName(t *testing.T) {
+	config := generateDefaultConfig()
+
+	if bytes, err := json.Marshal(config); err == nil {
+		if file, err := ioutil.TempFile("/tmp", "configor"); err == nil {
+			defer file.Close()
+			defer os.Remove(file.Name())
+			file.Write(bytes)
+			var result testConfig
+			os.Setenv("CONFIGOR_META_INFO", "env_meta_info")
+			defer os.Setenv("CONFIGOR_META_INFO", "")
+			Load(&result, file.Name())
+
+			var defaultConfig = generateDefaultConfig()
+			defaultConfig.MetaInfo = "env_meta_info"
 			if !reflect.DeepEqual(result, defaultConfig) {
 				t.Errorf("result should equal to original configuration")
 			}
